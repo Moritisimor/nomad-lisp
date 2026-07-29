@@ -32,6 +32,11 @@ Try typing some basic arithmetics and play around!
 (+ (* 10 5) (- 1000 250))
 ```
 
+You can also try this tiny program that greets you!
+```bash
+(println (+ "Hello, " (readln "Enter your name: ")))
+```
+
 To exit:
 ```bash
 (exit)
