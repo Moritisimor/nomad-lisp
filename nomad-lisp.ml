@@ -107,6 +107,18 @@ let scan_symbol char_stream =
     | x :: xs -> aux (x :: acc) xs
   in aux [] char_stream
 
+let count_parens token_stream =
+  let rec aux accl accr left =
+    match left with
+    | [] -> (accl, accr)
+    | x :: xs -> (
+      match x with
+      | RPAREN -> aux accl (accr + 1) xs
+      | LPAREN -> aux (accl + 1) accr xs
+      | _ -> aux accl accr xs
+    )
+  in aux 0 0 token_stream
+
 let tokenize text =
   let chars = List.of_seq (String.to_seq text) in
 
@@ -151,7 +163,17 @@ let tokenize text =
       | Ok (parsed_symbol, rest) -> aux (parsed_symbol :: acc) rest
       | Error e -> Error e
     )
-  in aux [LPAREN] chars
+  in 
+  match aux [LPAREN] chars with
+  | Ok tokens -> (
+    let (l, r) = count_parens tokens in
+    if l = r 
+      then Ok tokens
+      else if l > r then Error "Unbalanced parantheses: one or more unclosed left parantheses"
+      else Error "Unbalanced parantheses: one or more superfluous right parantheses"
+  )
+
+  | Error e -> Error e
 
 let rec parse tokens =
   let rec aux acc left =
@@ -251,45 +273,32 @@ let rec eval expression env =
   | _ -> RErr "I do not know what to make of this expression"
 
 let do_string source_code = 
-  let tokens = (
-    match tokenize source_code with
-    | Ok t -> t
-    | Error e -> (
-      print_endline ("Error while tokenizing: " ^ e);
-      exit 1
-    )
-  ) in
-
-  let root_expression = (
+  match tokenize source_code with
+  | Error e -> Error e
+  | Ok tokens -> (
     match parse tokens with
-    | Ok (a, _) -> a
-    | Error e -> (
-      print_endline ("Error while parsing: " ^ e);
-      exit 1
+    | Error e -> Error e
+    | Ok (root_expr, _) -> (
+      match expr_list_of_listlit root_expr with
+      | Error e -> Error e
+      | Ok ast -> (
+        let rec aux env last_expr left =
+          match left with
+          | [] -> last_expr
+          | x :: xs -> aux env (eval x env) xs
+        in Ok (aux () RUnit ast)
+      )
     )
-  ) in
-
-  let ast = (
-    match expr_list_of_listlit root_expression with
-    | Ok a -> a
-    | Error e -> (
-      print_endline e;
-      exit 1
-    )
-  ) in 
-
-  let rec aux env last_expr left =
-    match left with
-    | [] -> last_expr
-    | x :: xs -> aux env (eval x env) xs
-  in aux () RUnit ast
+  )
   
 let () =
   let rec aux () =
     print_string "Nomad LISP REPL >> ";
     Out_channel.flush stdout;
     let input = read_line () in
-    Printf.printf "Evaluates to: %s\n" (string_of_rval (do_string input));
+    (match do_string input with
+    | Ok evaluated -> Printf.printf "Evaluates to: %s\n" (string_of_rval evaluated)
+    | Error e -> print_endline e);
     aux ()
   in aux ()
 
