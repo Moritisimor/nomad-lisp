@@ -1,6 +1,7 @@
 open Nomad_lisp.Eval
 open Nomad_lisp.Runtime_value
-  
+open Nomad_lisp.Env
+
 let () =
   match Sys.argv with
   | [|_; "--help"|] -> (
@@ -14,11 +15,12 @@ let () =
   )
 
   | [|_|] | [|_; "--repl"|] -> (
+    let env = new_env () in
     let rec repl () =
       print_string "Nomad LISP REPL >> ";
       Out_channel.flush stdout;
       let input = read_line () in
-      (match do_string input with
+      (match do_string input env with
       | Ok evaluated -> Printf.printf "Evaluates to: %s\n" (string_of_rval evaluated)
       | Error e -> print_endline e);
       repl ()

@@ -3,12 +3,20 @@ open Expr
 open Helpers
 open Tokens
 open Parser
+open Env
 
 let rec eval expression env =
   match expression with
   | NumLit x -> RNum x
   | StringLit x -> RString x
   | BoolLit x -> RBool x
+  | Symbol s -> Env.get_binding env s
+  | List [Symbol "let"; Symbol binding_name; binding_value] -> (
+    let evaluated_binding_value = eval binding_value env in
+    Env.set_binding env binding_name evaluated_binding_value;
+    RUnit
+  ) 
+
   | List [Symbol "+"; lhs; rhs] -> (
     let (x, y) = (eval lhs env, eval rhs env) in
     match (x, y) with
@@ -139,9 +147,10 @@ let rec eval expression env =
     | _ -> RErr "The prompt you supplied is a non-string expression"
   )
 
+  | List l -> RList (List.map (fun x -> eval x env) l)
   | _ -> RErr "I do not know what to make of this expression"
 
-let do_string source_code = 
+let do_string source_code env = 
   match tokenize source_code with
   | Error e -> Error e
   | Ok tokens -> (
@@ -155,7 +164,7 @@ let do_string source_code =
           match left with
           | [] -> last_expr
           | x :: xs -> aux env (eval x env) xs
-        in Ok (aux () RUnit ast)
+        in Ok (aux env RUnit ast)
       )
     )
   )
