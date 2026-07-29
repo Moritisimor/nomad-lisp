@@ -9,7 +9,7 @@ type runtime_value =
   | RUnit 
   | RErr of string
 
-let string_of_rval = function
+let rec string_of_rval = function
   | RFun _ -> "<FUNCTION>"
   | RNum x -> (
     if mod_float x 1. = 0. 
@@ -18,6 +18,18 @@ let string_of_rval = function
   )
   | RString x -> x
   | RBool x -> Printf.sprintf "%b" x
-  | RList x -> "<LIST>"
+  | RList x -> (
+    let rec aux acc left =
+      match left with
+      | [] -> acc ^ ")"
+      | [x] -> (
+        acc ^ (string_of_rval x) ^ ")"
+      )
+      | x :: xs -> (
+        aux (acc ^ string_of_rval x ^ " ") xs
+      )
+    in aux "(" x
+  )
+
   | RUnit -> "<UNIT>"
   | RErr x -> Printf.sprintf "ERROR (%s)" x
