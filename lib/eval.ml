@@ -52,6 +52,70 @@ let rec eval expression env =
       RErr (Printf.sprintf "Cannot divide these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
   )
 
+  | List [Symbol "if"; cond; true_body; false_body] -> (
+    match eval cond env with
+    | RBool b -> (
+      match b with
+      | true -> eval true_body env
+      | false -> eval false_body env
+    )
+
+    | _ -> RErr "Condition of if-construct does not evaluate to a bool"
+  )
+
+  | List [Symbol "not"; boolexpr] -> (
+    let evaluated_boolexpr = eval boolexpr env in
+    match evaluated_boolexpr with
+    | RBool b -> (
+      match b with
+      | true -> RBool false
+      | false -> RBool true
+    )
+
+    | _ -> 
+      RErr (Printf.sprintf "Cannot negate non-boolean expression: %s" (string_of_rval evaluated_boolexpr))
+  )
+
+  | List [Symbol "="; a; b] -> (
+    if a = b then RBool true else RBool false
+  )
+
+  | List [Symbol ">"; a; b] -> (
+    let (x, y) = (eval a env, eval b env) in
+    match (x, y) with
+    | (RNum i, RNum j) -> RBool (i > j)
+    | _ -> 
+      RErr (Printf.sprintf "Cannot perform greater-comparison on non-numerical types: %s and %s" 
+      (string_of_rval x) (string_of_rval y))
+  )
+
+  | List [Symbol ">="; a; b] -> (
+    let (x, y) = (eval a env, eval b env) in
+    match (x, y) with
+    | (RNum i, RNum j) -> RBool (i > j || i = j)
+    | _ -> 
+      RErr (Printf.sprintf "Cannot perform greater/equal-comparison on non-numerical types: %s and %s" 
+      (string_of_rval x) (string_of_rval y))
+  )
+
+  | List [Symbol "<"; a; b] -> (
+    let (x, y) = (eval a env, eval b env) in
+    match (x, y) with
+    | (RNum i, RNum j) -> RBool (i < j)
+    | _ -> 
+      RErr (Printf.sprintf "Cannot perform smaller-comparison on non-numerical types: %s and %s" 
+      (string_of_rval x) (string_of_rval y))
+  )
+
+  | List [Symbol "<="; a; b] -> (
+    let (x, y) = (eval a env, eval b env) in
+    match (x, y) with
+    | (RNum i, RNum j) -> RBool (i < j || i = j)
+    | _ -> 
+      RErr (Printf.sprintf "Cannot perform smaller/equal-comparison on non-numerical types: %s and %s" 
+      (string_of_rval x) (string_of_rval y))
+  )
+
   | List [Symbol "print"; printee] -> (
     print_string (string_of_rval (eval printee env));
     RUnit
@@ -60,6 +124,19 @@ let rec eval expression env =
   | List [Symbol "println"; printee] -> (
     print_endline (string_of_rval (eval printee env));
     RUnit
+  )
+
+  | List [Symbol "readln"] -> RString (read_line ())
+  | List [Symbol "readln"; prompt] -> (
+    let evaluated_prompt = eval prompt env in
+    match evaluated_prompt with
+    | RString s -> (
+      print_string s;
+      Out_channel.flush stdout;
+      RString (read_line ())
+    )
+
+    | _ -> RErr "The prompt you supplied is a non-string expression"
   )
 
   | _ -> RErr "I do not know what to make of this expression"
