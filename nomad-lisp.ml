@@ -229,6 +229,15 @@ let rec eval expression env =
       RErr (Printf.sprintf "Cannot multiply these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
   )
 
+  | List [Symbol "/"; lhs; rhs] -> (
+    let (x, y) = (eval lhs env, eval rhs env) in
+    match (x, y) with
+    | (RNum a, RNum b) -> if b = 0.0 then RErr "Division by zero!" else RNum (a /. b)
+    
+    | _ ->
+      RErr (Printf.sprintf "Cannot divide these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
+  )
+
   | List [Symbol "print"; printee] -> (
     print_string (string_of_rval (eval printee env));
     RUnit
