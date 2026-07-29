@@ -1,6 +1,7 @@
 open Nomad_lisp.Eval
 open Nomad_lisp.Runtime_value
 open Nomad_lisp.Env
+open Nomad_lisp
 
 let () =
   match Sys.argv with
@@ -17,7 +18,7 @@ let () =
   | [|_|] | [|_; "--repl"|] -> (
     let env = new_env () in
     let rec repl () =
-      print_string "Nomad LISP REPL >> ";
+      print_string "Nomad λ ";
       Out_channel.flush stdout;
       let input = read_line () in
       (match do_string input env with
@@ -25,6 +26,17 @@ let () =
       | Error e -> print_endline e);
       repl ()
     in repl ()
+  )
+
+  | [|_; input_file|] -> (
+    try
+      match Eval.do_file input_file with
+      | Ok _ -> ()
+      | Error e -> print_endline e; exit 1
+    with Sys_error e -> (
+      print_endline ("Error while reading file: " ^ e);
+      exit 1
+    )
   )
   
   | _ -> (

@@ -61,14 +61,16 @@ let rec eval expression env =
   )
 
   | List [Symbol "if"; cond; true_body; false_body] -> (
-    match eval cond env with
+    let evaluated_cond = eval cond env in
+    match evaluated_cond with
     | RBool b -> (
       match b with
       | true -> eval true_body env
       | false -> eval false_body env
     )
 
-    | _ -> RErr "Condition of if-construct does not evaluate to a bool"
+    | _ -> 
+      RErr (Printf.sprintf "Condition of if-construct does not evaluate to a bool: %s" (string_of_rval evaluated_cond))
   )
 
   | List [Symbol "not"; boolexpr] -> (
@@ -85,9 +87,16 @@ let rec eval expression env =
   )
 
   | List [Symbol "="; a; b] -> (
-    if a = b then RBool true else RBool false
+    let (x, y) = (eval a env, eval b env) in
+    match (x, y) with
+    | (RNum i, RNum j) -> RBool (i = j)
+    | (RString i, RString j) -> RBool (i = j)
+    | (RBool i, RBool j) -> RBool (i = j)
+    | _ ->
+      RErr (Printf.sprintf "Cannot compare these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
   )
 
+  | List [Symbol "=="; a; b] -> if a = b then RBool true else RBool false
   | List [Symbol ">"; a; b] -> (
     let (x, y) = (eval a env, eval b env) in
     match (x, y) with
@@ -165,6 +174,34 @@ let do_string source_code env =
           | [] -> last_expr
           | x :: xs -> aux env (eval x env) xs
         in Ok (aux env RUnit ast)
+      )
+    )
+  )
+
+let do_file file_path =
+  let file_channel = In_channel.open_text file_path in
+  let source_code = In_channel.input_all file_channel in 
+  In_channel.close file_channel;
+  let env = new_env () in 
+
+  match tokenize source_code with
+  | Error e -> Error e
+  | Ok tokens -> (
+    match parse tokens with
+    | Error e -> Error e
+    | Ok (root_expr, _) -> (
+      match expr_list_of_listlit root_expr with
+      | Error e -> Error e
+      | Ok ast -> (
+        let rec aux env left =
+          match left with
+          | [] -> Ok ()
+          | x :: xs -> (
+            match eval x env with
+            | RErr e -> Error ("Uncaught Error: " ^ e)
+            | _ -> aux env xs
+          )
+        in aux env ast
       )
     )
   )
