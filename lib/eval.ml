@@ -12,6 +12,7 @@ let rec eval expression env =
   | BoolLit x -> RBool x
   | Symbol s -> Env.get_binding env s
   | Lambda (params, body) -> RLambda (params, body)
+  | Unit -> RUnit
   
   | List [Symbol "letfun"; Symbol name; List params; body] -> (
     let rec aux acc left = 
@@ -101,6 +102,19 @@ let rec eval expression env =
       RErr (Printf.sprintf "Condition of if-construct does not evaluate to a bool: %s" (string_of_rval evaluated_cond))
   )
 
+  | List [Symbol "unless"; cond; true_body; false_body] -> (
+    let evaluated_cond = eval cond env in
+    match evaluated_cond with
+    | RBool b -> (
+      match b with
+      | false -> eval true_body env
+      | true -> eval false_body env
+    )
+
+    | _ ->
+      RErr (Printf.sprintf "Condition of unless-construct does not evaluate to a bool: %s" (string_of_rval evaluated_cond))
+  )
+
   | List [Symbol "not"; boolexpr] -> (
     let evaluated_boolexpr = eval boolexpr env in
     match evaluated_boolexpr with
@@ -112,6 +126,26 @@ let rec eval expression env =
 
     | _ -> 
       RErr (Printf.sprintf "Cannot negate non-boolean expression: %s" (string_of_rval evaluated_boolexpr))
+  )
+
+  | List [Symbol "and"; boolexpr1; boolexpr2] -> (
+    let (evaluated1, evaluated2) = (eval boolexpr1 env, eval boolexpr2 env) in
+    match (evaluated1, evaluated2) with
+    | (RBool b, RBool a) -> RBool (a && b)
+    | _ -> RErr (
+      Printf.sprintf "Cannot perform logical-and on these expressions: %s and %s" 
+      (string_of_rval evaluated1) (string_of_rval evaluated2) 
+    )
+  )
+
+  | List [Symbol "or"; boolexpr1; boolexpr2] -> (
+    let (evaluated1, evaluated2) = (eval boolexpr1 env, eval boolexpr2 env) in
+    match (evaluated1, evaluated2) with
+    | (RBool b, RBool a) -> RBool (a || b)
+    | _ -> RErr (
+      Printf.sprintf "Cannot perform logical-or on these expressions: %s and %s" 
+      (string_of_rval evaluated1) (string_of_rval evaluated2) 
+    )
   )
 
   | List [Symbol "="; a; b] -> (
@@ -159,6 +193,29 @@ let rec eval expression env =
     | _ -> 
       RErr (Printf.sprintf "Cannot perform smaller/equal-comparison on non-numerical types: %s and %s" 
       (string_of_rval x) (string_of_rval y))
+  )
+
+  | List [Symbol "append"; a; b] -> (
+    let (x, y) = (eval a env, eval b env) in
+    match (x, y) with
+    | (RList i, RList j) -> RList (List.append i j)
+    | _ -> 
+      RErr (Printf.sprintf "Cannot perform list-append on these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
+  )
+
+  | List [Symbol "nth"; a; b] -> (
+    let (x, idx) = (eval a env, eval b env) in
+    match (x, idx) with
+    | (RList i, RNum j) -> (
+      match List.nth_opt i (int_of_float j) with
+      | Some elem -> elem
+      | None -> RUnit
+    )
+
+    | _ -> RErr (
+      Printf.sprintf "Cannot perform nth-operation on these expressions: %s and %s"
+      (string_of_rval x) (string_of_rval idx)
+    )
   )
 
   | List [Symbol "print"; printee] -> (
@@ -215,7 +272,6 @@ let rec eval expression env =
   )
 
   | List l -> RList (List.map (fun x -> eval x env) l)
-  | _ -> RErr "I do not know what to make of this expression"
 
 let do_string source_code env = 
   match tokenize source_code with
