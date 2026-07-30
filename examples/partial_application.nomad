@@ -1,3 +1,4 @@
+#!/usr/bin/env nomad
 (let add 
   (lambda (x)
     (lambda (y) 
