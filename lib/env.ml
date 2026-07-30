@@ -1,9 +1,16 @@
+open Runtime_value
+
 type env = {
-  bindings : (string, Runtime_value.runtime_value) Hashtbl.t
+  bindings : (string, runtime_value) Hashtbl.t
 }
 
-let new_env () = { bindings = Hashtbl.create 0 }
-let new_env_with_bindings existing_bindings = { bindings = existing_bindings }
+let new_env () =
+  let hashtbl = Hashtbl.create 0 in
+  Hashtbl.add hashtbl "PI" (RNum 3.1415926535);
+  Hashtbl.add hashtbl "EULER" (RNum 2.7182818284);
+  { bindings = hashtbl }
+
+let copy_env existing_env = { bindings = Hashtbl.copy existing_env.bindings }
 
 let get_binding environment binding_name = 
   let binding = Hashtbl.find_opt environment.bindings binding_name in

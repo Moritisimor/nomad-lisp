@@ -5,7 +5,6 @@ type token =
   | BOOLLIT of bool
   | STRINGLIT of string
   | UNITLIT
-  | LAMBDA
   | SYMBOL of string
   | EOF
 
@@ -16,7 +15,6 @@ let rec string_of_token = function
   | BOOLLIT x -> Printf.sprintf "BOOLLIT(%b)" x
   | STRINGLIT x -> Printf.sprintf "STRINGLIT(\"%s\")" x
   | UNITLIT -> "UNITLITERAL"
-  | LAMBDA -> "LAMBDA"
   | SYMBOL x -> Printf.sprintf "SYMBOL('%s')" x
   | EOF -> Printf.sprintf "EOF"
 
@@ -94,9 +92,8 @@ let tokenize text =
     | 'f' :: 'a' :: 'l' :: 's' :: 'e' :: xs -> aux (BOOLLIT false :: acc) xs
 
     | '(' :: ')' :: xs -> aux (UNITLIT :: acc) xs
-    | 'l' :: 'a' :: 'm' :: 'b' :: 'd' :: 'a' :: xs -> aux (LAMBDA :: acc) xs
 
-    | ';' :: xs -> aux acc (skip_to_newline xs)
+    | '#' :: xs -> aux acc (skip_to_newline xs)
 
     | ')' :: xs -> aux (RPAREN :: acc) xs
     | '(' :: xs -> aux (LPAREN :: acc) xs

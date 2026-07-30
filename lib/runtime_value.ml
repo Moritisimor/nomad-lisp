@@ -1,7 +1,7 @@
 open Expr
 
 type runtime_value =
-  | RFun of string list * expr list
+  | RLambda of string list * expr list
   | RNum of float
   | RString of string
   | RBool of bool
@@ -10,7 +10,7 @@ type runtime_value =
   | RErr of string
 
 let rec string_of_rval = function
-  | RFun _ -> "<FUNCTION>"
+  | RLambda _ -> "<FUNCTION>"
   | RNum x -> (
     if mod_float x 1. = 0. 
       then Printf.sprintf "%d" (int_of_float x)
@@ -22,12 +22,8 @@ let rec string_of_rval = function
     let rec aux acc left =
       match left with
       | [] -> acc ^ ")"
-      | [x] -> (
-        acc ^ (string_of_rval x) ^ ")"
-      )
-      | x :: xs -> (
-        aux (acc ^ string_of_rval x ^ " ") xs
-      )
+      | [x] -> acc ^ (string_of_rval x) ^ ")"
+      | x :: xs -> aux (acc ^ string_of_rval x ^ " ") xs
     in aux "(" x
   )
 

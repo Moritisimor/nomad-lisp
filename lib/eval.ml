@@ -11,6 +11,26 @@ let rec eval expression env =
   | StringLit x -> RString x
   | BoolLit x -> RBool x
   | Symbol s -> Env.get_binding env s
+  | Lambda (params, body) -> RLambda (params, body)
+  
+  | List [Symbol "letfun"; Symbol name; List params; List body] -> (
+    let rec aux acc left = 
+      match left with
+      | [] -> Ok (List.rev acc)
+      | x :: xs -> (
+        match x with
+        | Symbol s -> aux (s :: acc) xs
+        | _ -> Error "Non-Symbol in parameter list"
+      )
+    in let param_list = aux [] params in
+    match param_list with
+    | Error e -> RErr e
+    | Ok p -> (
+      Env.set_binding env name (RLambda (p, body));
+      RUnit
+    )
+  )
+
   | List [Symbol "let"; Symbol binding_name; binding_value] -> (
     let evaluated_binding_value = eval binding_value env in
     Env.set_binding env binding_name evaluated_binding_value;
@@ -154,6 +174,40 @@ let rec eval expression env =
     )
 
     | _ -> RErr "The prompt you supplied is a non-string expression"
+  )
+
+  | List [Symbol fun_name; List fun_params] -> (
+    let fun_binding = eval (Symbol fun_name) env in
+    match fun_binding with
+    | RLambda (params, body) -> (
+      let (expected_len, actual_len) = (List.length params, List.length fun_params) in
+      match List.length params <> List.length fun_params with
+      | true -> RErr (
+        Printf.sprintf "Attempted to invoke lambda with wrong amount of params. Expected: %d got: %d"
+        expected_len actual_len
+      )
+
+      | false -> (
+        let this_env = Env.copy_env env in 
+        let rec aux left idx =
+          match left with
+          | [] -> ()
+          | x :: xs -> (
+            (* This is honestly kinda stupid :/ *)
+            Env.set_binding this_env x (eval (List.nth fun_params idx) this_env);
+            aux xs (idx + 1)
+          )
+
+        in aux params 0;
+        let rec aux last_expr left = 
+          match left with
+          | [] -> last_expr
+          | x :: xs -> aux (eval x this_env) xs
+        in aux RUnit body
+      )
+    )
+
+    | _ -> RErr (Printf.sprintf "Attempt to invoke non-lambda: %s" (string_of_rval fun_binding))
   )
 
   | List l -> RList (List.map (fun x -> eval x env) l)
