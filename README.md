@@ -72,7 +72,6 @@ To exit:
 
 #### A Quiz Application
 ```lisp
-#!/usr/bin/env nomad
 (letfun input_loop (correct_answer prompt)
   (if (= correct_answer (readln prompt))
     (println "Correct!")
