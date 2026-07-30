@@ -3,12 +3,12 @@
   (do 
 		((letfun aux (h t i) 
 	  	((if (isunit h)
-				(()) # unit, we are done
-				(do 
-					((print i)
-					(print ": ")
-					(println h)
-					(aux ((head t) (tail t) (+ i 1))))))))
+			(()) # unit, we are done
+			(do 
+				((print i)
+				(print ": ")
+				(println h)
+				(aux ((head t) (tail t) (+ i 1))))))))
 
 		(aux ((head l) (tail l) 0)))))
 
