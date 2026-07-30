@@ -323,6 +323,17 @@ let rec eval expression env =
   )
 
   | List [Symbol "to_string"; e] -> RString (string_of_rval (eval e env))
+  | List [Symbol "string_to_num"; e] -> (
+    let x = eval e env in
+    match x with
+    | RString s -> (
+      match float_of_string_opt s with
+      | Some i -> RNum i
+      | _ -> RErr (Printf.sprintf "Cannot parse this string to a number: %s" s)
+    )
+
+    | _ -> RErr (Printf.sprintf "Cannot convert this expression to a number: %s" (string_of_rval x))
+  )
   
   | List [fun_expr; List fun_params] -> (
     let fun_binding = eval fun_expr env in
