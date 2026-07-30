@@ -1,5 +1,5 @@
 type expr = 
-  | Lambda of string list * expr list
+  | Lambda of string list * expr
   | Symbol of string
   | NumLit of float
   | StringLit of string

@@ -13,7 +13,7 @@ let rec eval expression env =
   | Symbol s -> Env.get_binding env s
   | Lambda (params, body) -> RLambda (params, body)
   
-  | List [Symbol "letfun"; Symbol name; List params; List body] -> (
+  | List [Symbol "letfun"; Symbol name; List params; body] -> (
     let rec aux acc left = 
       match left with
       | [] -> Ok (List.rev acc)
@@ -36,6 +36,14 @@ let rec eval expression env =
     Env.set_binding env binding_name evaluated_binding_value;
     RUnit
   ) 
+
+  | List [Symbol "do"; List body] -> (
+    let rec aux last_expr left = 
+      match left with
+      | [] -> last_expr
+      | x :: xs -> aux (eval x env) xs
+    in aux RUnit body
+  )
 
   | List [Symbol "+"; lhs; rhs] -> (
     let (x, y) = (eval lhs env, eval rhs env) in
@@ -188,7 +196,7 @@ let rec eval expression env =
       )
 
       | false -> (
-        let this_env = Env.copy_env env in 
+        let this_env = Env.copy_env env in
         let rec aux left idx =
           match left with
           | [] -> ()
@@ -199,11 +207,7 @@ let rec eval expression env =
           )
 
         in aux params 0;
-        let rec aux last_expr left = 
-          match left with
-          | [] -> last_expr
-          | x :: xs -> aux (eval x this_env) xs
-        in aux RUnit body
+        eval body this_env 
       )
     )
 

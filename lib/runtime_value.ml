@@ -1,7 +1,7 @@
 open Expr
 
 type runtime_value =
-  | RLambda of string list * expr list
+  | RLambda of string list * expr
   | RNum of float
   | RString of string
   | RBool of bool
