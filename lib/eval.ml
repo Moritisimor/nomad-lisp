@@ -38,6 +38,21 @@ let rec eval expression env =
     RUnit
   ) 
 
+  | List [Symbol "lambda"; List params; body] -> (
+    let rec aux acc left = 
+      match left with
+      | [] -> Ok (List.rev acc)
+      | x :: xs -> (
+        match x with
+        | Symbol s -> aux (s :: acc) xs
+        | _ -> Error "Non-Symbol in parameter list"
+      )
+    in let param_list = aux [] params in 
+    match param_list with
+    | Error e -> RErr e
+    | Ok p -> RLambda (p, body)
+  )
+
   | List [Symbol "do"; List body] -> (
     let rec aux last_expr left = 
       match left with
@@ -241,8 +256,8 @@ let rec eval expression env =
     | _ -> RErr "The prompt you supplied is a non-string expression"
   )
 
-  | List [Symbol fun_name; List fun_params] -> (
-    let fun_binding = eval (Symbol fun_name) env in
+  | List [fun_expr; List fun_params] -> (
+    let fun_binding = eval fun_expr env in
     match fun_binding with
     | RLambda (params, body) -> (
       let (expected_len, actual_len) = (List.length params, List.length fun_params) in
