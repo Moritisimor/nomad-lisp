@@ -36,7 +36,7 @@ let rec eval expression env =
     let evaluated_binding_value = eval binding_value env in
     Env.set_binding env binding_name evaluated_binding_value;
     RUnit
-  ) 
+  )
 
   | List [Symbol "lambda"; List params; body] -> (
     let rec aux acc left = 
@@ -51,6 +51,30 @@ let rec eval expression env =
     match param_list with
     | Error e -> RErr e
     | Ok p -> RLambda (p, body, env.bindings)
+  )
+
+  | List [Symbol "head"; list_expr] | List [Symbol "car"; list_expr] -> (
+    let l = eval list_expr env in
+    match l with
+    | RList content -> (
+      match content with
+      | head :: _ -> head
+      | _ -> RUnit
+    )
+
+    | _ -> RErr (Printf.sprintf "Cannot perform head-operation on non-list expression: %s" (string_of_rval l))
+  )
+
+  | List [Symbol "tail"; list_expr] | List [Symbol "cdr"; list_expr] -> (
+    let l = eval list_expr env in
+    match l with
+    | RList content -> (
+      match content with
+      | _ :: tail -> RList tail
+      | _ -> RUnit
+    )
+
+    | _ -> RErr (Printf.sprintf "Cannot perform tail-operation on non-list expression: %s" (string_of_rval l))
   )
 
   | List [Symbol "do"; List body] -> (
@@ -161,6 +185,48 @@ let rec eval expression env =
       Printf.sprintf "Cannot perform logical-or on these expressions: %s and %s" 
       (string_of_rval evaluated1) (string_of_rval evaluated2) 
     )
+  )
+
+  | List [Symbol "isunit"; a] -> (
+    match eval a env with
+    | RUnit -> RBool true
+    | _ -> RBool false
+  )
+
+  | List [Symbol "iserr"; a] -> (
+    match eval a env with
+    | RErr _ -> RBool true
+    | _ -> RBool false
+  )
+
+  | List [Symbol "isnum"; a] -> (
+    match eval a env with
+    | RNum _ -> RBool true
+    | _ -> RBool false
+  )
+
+  | List [Symbol "islist"; a] -> (
+    match eval a env with
+    | RList _ -> RBool true
+    | _ -> RBool false
+  )
+
+  | List [Symbol "isfun"; a] -> (
+    match eval a env with
+    | RLambda _ -> RBool true
+    | _ -> RBool false
+  )
+
+  | List [Symbol "isstr"; a] -> (
+    match eval a env with
+    | RString _ -> RBool true
+    | _ -> RBool false
+  )
+
+  | List [Symbol "isbool"; a] -> (
+    match eval a env with
+    | RBool _ -> RBool true
+    | _ -> RBool false
   )
 
   | List [Symbol "="; a; b] -> (
