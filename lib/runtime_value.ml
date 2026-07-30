@@ -1,7 +1,7 @@
 open Expr
 
 type runtime_value =
-  | RLambda of string list * expr
+  | RLambda of string list * expr * (string, runtime_value) Hashtbl.t
   | RNum of float
   | RString of string
   | RBool of bool

@@ -11,7 +11,7 @@ let rec eval expression env =
   | StringLit x -> RString x
   | BoolLit x -> RBool x
   | Symbol s -> Env.get_binding env s
-  | Lambda (params, body) -> RLambda (params, body)
+  | Lambda (params, body) -> RLambda (params, body, Hashtbl.copy env.bindings)
   | Unit -> RUnit
   
   | List [Symbol "letfun"; Symbol name; List params; body] -> (
@@ -27,7 +27,7 @@ let rec eval expression env =
     match param_list with
     | Error e -> RErr e
     | Ok p -> (
-      Env.set_binding env name (RLambda (p, body));
+      Env.set_binding env name (RLambda (p, body, env.bindings));
       RUnit
     )
   )
@@ -50,7 +50,7 @@ let rec eval expression env =
     in let param_list = aux [] params in 
     match param_list with
     | Error e -> RErr e
-    | Ok p -> RLambda (p, body)
+    | Ok p -> RLambda (p, body, env.bindings)
   )
 
   | List [Symbol "do"; List body] -> (
@@ -259,7 +259,7 @@ let rec eval expression env =
   | List [fun_expr; List fun_params] -> (
     let fun_binding = eval fun_expr env in
     match fun_binding with
-    | RLambda (params, body) -> (
+    | RLambda (params, body, captured) -> (
       let (expected_len, actual_len) = (List.length params, List.length fun_params) in
       match List.length params <> List.length fun_params with
       | true -> RErr (
@@ -268,7 +268,7 @@ let rec eval expression env =
       )
 
       | false -> (
-        let this_env = Env.copy_env env in
+        let this_env = Env.copy_env { bindings = captured } in
         let rec aux left idx =
           match left with
           | [] -> ()
