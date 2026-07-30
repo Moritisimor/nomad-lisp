@@ -9,4 +9,4 @@
 (println (+ "z = " (to_string z)))
 (if (= z 30)
   (println "All good! Closures work as expected.")
-  (print "Uh oh, Closures do not work as expected!"))
+  (println "Uh oh, Closures do not work as expected!"))

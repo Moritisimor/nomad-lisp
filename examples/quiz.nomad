@@ -6,4 +6,7 @@
       ((println "False!\nTry again!")
       ((input_loop (correct_answer prompt)))))))
 
-(input_loop ("8" "How many minutes? "))
+(input_loop ("berlin" "What is the capital of Germany? "))
+(input_loop ("21" "What's 9 + 10? "))
+(input_loop ("ocaml" "What language is Nomad-LISP written in? "))
+(println "All questions answered correctly!")

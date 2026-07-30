@@ -54,3 +54,33 @@ To exit:
 
 (count (0 10))
 ```
+
+#### Currying and Function Composition in action
+```lisp
+(let add 
+  (lambda (x)
+    (lambda (y) 
+      (+ x y))))
+
+(let add10 (add (10)))
+(let z (add10 (20)))
+(println (+ "z = " (to_string z)))
+(if (= z 30)
+  (println "All good! Closures work as expected.")
+  (println "Uh oh, Closures do not work as expected!"))
+```
+
+#### A Quiz Application
+```lisp
+#!/usr/bin/env nomad
+(letfun input_loop (correct_answer prompt)
+  (if (= correct_answer (readln prompt))
+    (println "Correct!")
+    (do 
+      ((println "False!\nTry again!")
+      ((input_loop (correct_answer prompt)))))))
+
+(input_loop ("berlin" "What is the capital of Germany? "))
+(input_loop ("21" "What's 9 + 10? "))
+(input_loop ("ocaml" "What language is Nomad-LISP written in? "))
+```
