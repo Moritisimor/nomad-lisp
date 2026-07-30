@@ -256,6 +256,8 @@ let rec eval expression env =
     | _ -> RErr "The prompt you supplied is a non-string expression"
   )
 
+  | List [Symbol "to_string"; e] -> RString (string_of_rval (eval e env))
+  
   | List [fun_expr; List fun_params] -> (
     let fun_binding = eval fun_expr env in
     match fun_binding with
