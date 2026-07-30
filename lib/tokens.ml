@@ -41,6 +41,11 @@ let scan_stringlit char_stream =
     match left with
     | [] -> Error "String literal was never ended"
     | '"' :: xs -> Ok (STRINGLIT (String.of_seq (List.to_seq (List.rev acc))), xs)
+    | '\\' :: 'n' :: xs -> aux ('\n' :: acc) xs
+    | '\\' :: 't' :: xs -> aux ('\t' :: acc) xs
+    | '\\' :: 'r' :: xs -> aux ('\r' :: acc) xs
+    | '\\' :: 'b' :: xs -> aux ('\b' :: acc) xs
+    | '\\' :: '"' :: xs -> aux ('"' :: acc) xs
     | x :: xs -> aux (x :: acc) xs
   in aux [] char_stream
 

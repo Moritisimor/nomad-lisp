@@ -6,4 +6,6 @@
       ((println start) 
       (count ((+ start 1) end))))))
 
-(count (0 10))
+(let start 0)
+(let end 10)
+(count (start end))
