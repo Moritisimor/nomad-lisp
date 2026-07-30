@@ -86,7 +86,6 @@ To exit:
 
 #### Recursive helper functions
 ```lisp
-#!/usr/bin/env nomad
 (letfun print_list (l) 
   (do 
 		((letfun aux (h t i) 
