@@ -5,7 +5,7 @@
 	  	((if (isunit h)
 				(()) # unit, we are done
 				(do 
-				((print i)
+					((print i)
 					(print ": ")
 					(println h)
 					(aux ((head t) (tail t) (+ i 1))))))))
