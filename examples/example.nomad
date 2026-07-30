@@ -1,3 +1,4 @@
+#!/usr/bin/env nomad
 (let minutes "8")
 (let input_minutes (readln "How many minutes? "))
 

@@ -26,18 +26,31 @@ You can now enter the REPL like this:
 ```
 
 Try typing some basic arithmetics and play around!
-```bash
+```lisp
 (+ 1 2)
 (* 6 7)
 (+ (* 10 5) (- 1000 250))
 ```
 
 You can also try this tiny program that greets you!
-```bash
+```lisp
 (println (+ "Hello, " (readln "Enter your name: ")))
 ```
 
 To exit:
 ```bash
 (exit)
+```
+
+### Examples
+#### A recursive counter function
+```lisp
+(letfun count (start end)
+  (if (< end start)
+    (println "done!")
+    (do 
+      ((println start) 
+      (count ((+ start 1) end))))))
+
+(count (0 10))
 ```
