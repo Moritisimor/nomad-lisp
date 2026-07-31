@@ -96,7 +96,7 @@ let tokenize text =
     | 't' :: 'r' :: 'u' :: 'e' :: xs -> aux (BOOLLIT true :: acc) xs
     | 'f' :: 'a' :: 'l' :: 's' :: 'e' :: xs -> aux (BOOLLIT false :: acc) xs
 
-    | '(' :: ')' :: xs -> aux (UNITLIT :: acc) xs
+    | 'u' :: 'n' :: 'i' :: 't' :: xs -> aux (UNITLIT :: acc) xs
 
     | '#' :: xs -> aux acc (skip_to_newline xs)
 

@@ -16,12 +16,14 @@
 				(if (= op "*")
 					(println (* x y))
 				(if (= op "/")
-					(println (/ x y))
+					(unless (= y 0)
+						(println (/ x y))
+						(println "Cannot divide by 0!"))
 					(do
 						((println "Unknown operator!")
-						(input_loop (())))))))))))))
+						(input_loop (unit)))))))))))))
 						
-		(input_loop (()))))
+		(input_loop (unit))))
 
 (println "Ctrl + C to exit!")
 (input_loop (()))
