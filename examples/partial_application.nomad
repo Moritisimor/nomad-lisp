@@ -1,7 +1,7 @@
 #!/usr/bin/env nomad
 (let add 
-  (lambda (x)
-    (lambda (y)
+  (λ (x) # λ is optional, simply typing 'lambda' is just as valid.
+    (λ (y)
       (+ x y))))
 
 (let add10 (add 10))

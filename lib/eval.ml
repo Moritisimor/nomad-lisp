@@ -38,7 +38,7 @@ let rec eval expression env =
     RUnit
   )
 
-  | List [Symbol "lambda"; List params; body] -> (
+  | List [Symbol "lambda"; List params; body] | List [Symbol "λ"; List params; body] -> (
     let rec aux acc left = 
       match left with
       | [] -> Ok (List.rev acc)
