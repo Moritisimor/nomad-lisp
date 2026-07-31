@@ -93,7 +93,7 @@ To exit:
   (do
     (letfun aux (h t i)
       (if (isunit t)
-        acc
+        unit
         (do
           (print i)
           (print ": ")
