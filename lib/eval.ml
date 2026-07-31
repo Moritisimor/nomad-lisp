@@ -50,7 +50,7 @@ let rec eval expression env =
     in let param_list = aux [] params in 
     match param_list with
     | Error e -> RErr e
-    | Ok p -> RLambda (p, body, env.bindings)
+    | Ok p -> RLambda (p, body, Hashtbl.copy env.bindings)
   )
 
   | List [Symbol "head"; list_expr] | List [Symbol "car"; list_expr] -> (
@@ -356,7 +356,7 @@ let rec eval expression env =
       )
 
       | false -> (
-        let this_env = { bindings = Hashtbl.copy captured } in
+        let this_env = { bindings = captured } in
         let rec aux left idx =
           match left with
           | [] -> ()
