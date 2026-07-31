@@ -1,4 +1,5 @@
 open Expr
+open Printf
 
 type runtime_value =
   | RLambda of string list * expr * (string, runtime_value) Hashtbl.t
@@ -13,11 +14,11 @@ let rec string_of_rval = function
   | RLambda _ -> "<FUNCTION>"
   | RNum x -> (
     if mod_float x 1. = 0. 
-      then Printf.sprintf "%d" (int_of_float x)
-      else Printf.sprintf "%.2f" x
+      then sprintf "%d" (int_of_float x)
+      else sprintf "%.2f" x
   )
   | RString x -> x
-  | RBool x -> Printf.sprintf "%b" x
+  | RBool x -> sprintf "%b" x
   | RList x -> (
     let rec aux acc left =
       match left with

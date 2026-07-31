@@ -1,3 +1,5 @@
+open Printf
+
 type expr = 
   | Lambda of string list * expr
   | Symbol of string
@@ -9,10 +11,10 @@ type expr =
 
 let rec string_of_expr = function
   | Lambda _ -> "<LAMBDA>"
-  | Symbol s -> Printf.sprintf "Symbol('%s')" s
-  | NumLit i -> Printf.sprintf "Number(%f)" i
-  | StringLit s -> Printf.sprintf "String(\"%s\")" s
-  | BoolLit b -> Printf.sprintf "Bool(%b)" b
+  | Symbol s -> sprintf "Symbol('%s')" s
+  | NumLit i -> sprintf "Number(%f)" i
+  | StringLit s -> sprintf "String(\"%s\")" s
+  | BoolLit b -> sprintf "Bool(%b)" b
   | Unit -> "<UNIT>"
   | List l -> (
     let rec aux acc left = 

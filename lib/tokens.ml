@@ -1,4 +1,6 @@
 open Nomad_err
+open Helpers
+open Printf
 
 type token =
   | LPAREN
@@ -13,23 +15,23 @@ type token =
 let rec string_of_token = function
   | LPAREN -> "LPAREN"
   | RPAREN -> "RPAREN"
-  | NUMLIT x -> Printf.sprintf "NUMLIT(%.2f)" x
-  | BOOLLIT x -> Printf.sprintf "BOOLLIT(%b)" x
-  | STRINGLIT x -> Printf.sprintf "STRINGLIT(\"%s\")" x
+  | NUMLIT x -> sprintf "NUMLIT(%.2f)" x
+  | BOOLLIT x -> sprintf "BOOLLIT(%b)" x
+  | STRINGLIT x -> sprintf "STRINGLIT(\"%s\")" x
   | UNITLIT -> "UNITLITERAL"
-  | SYMBOL x -> Printf.sprintf "SYMBOL('%s')" x
-  | EOF -> Printf.sprintf "EOF"
+  | SYMBOL x -> sprintf "SYMBOL('%s')" x
+  | EOF -> sprintf "EOF"
 
 let scan_numlit char_stream =
   let rec aux acc left =
     match left with
-    | [] -> Error (TokenizerError "Number literal was never ended")
+    | [] -> Error (TokenizerError (sprintf "Number literal was never ended (Got %s)" (string_of_chars acc)))
     | ')' :: xs 
       | '(' :: xs 
       | ' ' :: xs 
       | '\t' :: xs 
       | '\n' :: xs -> (
-        let num_string = String.of_seq (List.to_seq (List.rev acc)) in
+        let num_string = string_of_chars acc in
         match float_of_string_opt num_string with
         | Some x -> Ok ((NUMLIT x), left)
         | None -> Error (TokenizerError (Printf.sprintf "Could not parse %s to a number" num_string))
@@ -41,8 +43,8 @@ let scan_numlit char_stream =
 let scan_stringlit char_stream =
   let rec aux acc left =
     match left with
-    | [] -> Error (TokenizerError "String literal was never ended")
-    | '"' :: xs -> Ok (STRINGLIT (String.of_seq (List.to_seq (List.rev acc))), xs)
+    | [] -> Error (TokenizerError (sprintf "String literal was never ended (Got \"%s)" (string_of_chars acc)))
+    | '"' :: xs -> Ok (STRINGLIT (string_of_chars acc), xs)
     | '\\' :: 'n' :: xs -> aux ('\n' :: acc) xs
     | '\\' :: 't' :: xs -> aux ('\t' :: acc) xs
     | '\\' :: 'r' :: xs -> aux ('\r' :: acc) xs
@@ -62,13 +64,13 @@ let skip_to_newline char_stream =
 let scan_symbol char_stream =
   let rec aux acc left =
     match left with
-    | [] -> Error (TokenizerError "Symbol was never ended")
+    | [] -> Error (TokenizerError (sprintf "Symbol was never ended (Got %s)" (string_of_chars acc)))
     | ')' :: xs 
       | '(' :: xs 
       | ' ' :: xs 
       | '\t' :: xs 
       | '\n' :: xs -> (
-        let symbol_string = String.of_seq (List.to_seq (List.rev acc)) in
+        let symbol_string = string_of_chars acc in
         Ok ((SYMBOL symbol_string), left)
       )
     
@@ -88,7 +90,7 @@ let count_parens token_stream =
   in aux 0 0 token_stream
 
 let tokenize text =
-  let chars = List.of_seq (String.to_seq text) in
+  let chars = chars_of_string text in
 
   let rec aux acc left =
     match left with

@@ -5,6 +5,7 @@ open Tokens
 open Parser
 open Env
 open Nomad_err
+open Printf
 
 let rec eval expression env =
   match expression with
@@ -63,7 +64,7 @@ let rec eval expression env =
       | _ -> RUnit
     )
 
-    | _ -> RErr (Printf.sprintf "Cannot perform head-operation on non-list expression: %s" (string_of_rval l))
+    | _ -> RErr (sprintf "Cannot perform head-operation on non-list expression: %s" (string_of_rval l))
   )
 
   | List [Symbol "tail"; list_expr] | List [Symbol "cdr"; list_expr] -> (
@@ -75,7 +76,7 @@ let rec eval expression env =
       | _ -> RUnit
     )
 
-    | _ -> RErr (Printf.sprintf "Cannot perform tail-operation on non-list expression: %s" (string_of_rval l))
+    | _ -> RErr (sprintf "Cannot perform tail-operation on non-list expression: %s" (string_of_rval l))
   )
 
   | List [Symbol "chars"; str_expr] -> (
@@ -86,7 +87,7 @@ let rec eval expression env =
       RList (List.map (fun c -> RString (String.of_char c)) chars)
     )
 
-    | _ -> RErr (Printf.sprintf "")
+    | _ -> RErr (sprintf "Cannot apply chars-operation on non-string expression: %s" (string_of_rval str_val))
   )
 
   | List (Symbol "do" :: body) -> (
@@ -103,7 +104,7 @@ let rec eval expression env =
     | (RNum a, RNum b) -> RNum (a +. b)
     | (RString a, RString b) -> RString (a ^ b)
     | _ -> 
-      RErr (Printf.sprintf "Cannot add these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
+      RErr (sprintf "Cannot add these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
   )
 
   | List [Symbol "exit"] -> exit 0
@@ -111,7 +112,7 @@ let rec eval expression env =
     let code = eval c env in
     match code with
     | RNum a -> exit (int_of_float a)
-    | _ -> RErr (Printf.sprintf "Exit Code is not a number. Expected a number, got %s" (string_of_rval code))
+    | _ -> RErr (sprintf "Exit Code is not a number. Expected a number, got %s" (string_of_rval code))
   )
 
   | List [Symbol "-"; lhs; rhs] -> (
@@ -119,7 +120,7 @@ let rec eval expression env =
     match (x, y) with
     | (RNum a, RNum b) -> RNum (a -. b)
     | _ -> 
-      RErr (Printf.sprintf "Cannot subtract these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
+      RErr (sprintf "Cannot subtract these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
   )
 
   | List [Symbol "*"; lhs; rhs] -> (
@@ -128,7 +129,7 @@ let rec eval expression env =
     | (RNum a, RNum b) -> RNum (a *. b)
     | (RString a, RNum b) -> RString (mul_string a b)
     | _ -> 
-      RErr (Printf.sprintf "Cannot multiply these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
+      RErr (sprintf "Cannot multiply these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
   )
 
   | List [Symbol "/"; lhs; rhs] -> (
@@ -137,7 +138,7 @@ let rec eval expression env =
     | (RNum a, RNum b) -> if b = 0.0 then RErr "Division by zero!" else RNum (a /. b)
     
     | _ ->
-      RErr (Printf.sprintf "Cannot divide these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
+      RErr (sprintf "Cannot divide these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
   )
 
   | List [Symbol "if"; cond; true_body; false_body] -> (
@@ -150,7 +151,7 @@ let rec eval expression env =
     )
 
     | _ -> 
-      RErr (Printf.sprintf "Condition of if-construct does not evaluate to a bool: %s" (string_of_rval evaluated_cond))
+      RErr (sprintf "Condition of if-construct does not evaluate to a bool: %s" (string_of_rval evaluated_cond))
   )
 
   | List [Symbol "unless"; cond; true_body; false_body] -> (
@@ -163,7 +164,7 @@ let rec eval expression env =
     )
 
     | _ ->
-      RErr (Printf.sprintf "Condition of unless-construct does not evaluate to a bool: %s" (string_of_rval evaluated_cond))
+      RErr (sprintf "Condition of unless-construct does not evaluate to a bool: %s" (string_of_rval evaluated_cond))
   )
 
   | List [Symbol "not"; boolexpr] -> (
@@ -176,7 +177,7 @@ let rec eval expression env =
     )
 
     | _ -> 
-      RErr (Printf.sprintf "Cannot negate non-boolean expression: %s" (string_of_rval evaluated_boolexpr))
+      RErr (sprintf "Cannot negate non-boolean expression: %s" (string_of_rval evaluated_boolexpr))
   )
 
   | List [Symbol "and"; boolexpr1; boolexpr2] -> (
@@ -184,7 +185,7 @@ let rec eval expression env =
     match (evaluated1, evaluated2) with
     | (RBool b, RBool a) -> RBool (a && b)
     | _ -> RErr (
-      Printf.sprintf "Cannot perform logical-and on these expressions: %s and %s" 
+      sprintf "Cannot perform logical-and on these expressions: %s and %s" 
       (string_of_rval evaluated1) (string_of_rval evaluated2) 
     )
   )
@@ -194,7 +195,7 @@ let rec eval expression env =
     match (evaluated1, evaluated2) with
     | (RBool b, RBool a) -> RBool (a || b)
     | _ -> RErr (
-      Printf.sprintf "Cannot perform logical-or on these expressions: %s and %s" 
+      sprintf "Cannot perform logical-or on these expressions: %s and %s" 
       (string_of_rval evaluated1) (string_of_rval evaluated2) 
     )
   )
@@ -245,7 +246,7 @@ let rec eval expression env =
     let (x, y) = (eval l env, eval e env) in
     match x with
     | RList i -> RList (List.cons y i)
-    | _ -> RErr (Printf.sprintf "Cannot perform cons-operation on non-list expression: %s" (string_of_rval x))
+    | _ -> RErr (sprintf "Cannot perform cons-operation on non-list expression: %s" (string_of_rval x))
   )
 
   | List [Symbol "="; a; b] -> (
@@ -255,7 +256,7 @@ let rec eval expression env =
     | (RString i, RString j) -> RBool (i = j)
     | (RBool i, RBool j) -> RBool (i = j)
     | _ ->
-      RErr (Printf.sprintf "Cannot compare these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
+      RErr (sprintf "Cannot compare these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
   )
 
   | List [Symbol "=="; a; b] -> if a = b then RBool true else RBool false
@@ -264,7 +265,7 @@ let rec eval expression env =
     match (x, y) with
     | (RNum i, RNum j) -> RBool (i > j)
     | _ -> 
-      RErr (Printf.sprintf "Cannot perform greater-comparison on non-numerical types: %s and %s" 
+      RErr (sprintf "Cannot perform greater-comparison on non-numerical types: %s and %s" 
       (string_of_rval x) (string_of_rval y))
   )
 
@@ -273,7 +274,7 @@ let rec eval expression env =
     match (x, y) with
     | (RNum i, RNum j) -> RBool (i > j || i = j)
     | _ -> 
-      RErr (Printf.sprintf "Cannot perform greater/equal-comparison on non-numerical types: %s and %s" 
+      RErr (sprintf "Cannot perform greater/equal-comparison on non-numerical types: %s and %s" 
       (string_of_rval x) (string_of_rval y))
   )
 
@@ -282,7 +283,7 @@ let rec eval expression env =
     match (x, y) with
     | (RNum i, RNum j) -> RBool (i < j)
     | _ -> 
-      RErr (Printf.sprintf "Cannot perform smaller-comparison on non-numerical types: %s and %s" 
+      RErr (sprintf "Cannot perform smaller-comparison on non-numerical types: %s and %s" 
       (string_of_rval x) (string_of_rval y))
   )
 
@@ -291,7 +292,7 @@ let rec eval expression env =
     match (x, y) with
     | (RNum i, RNum j) -> RBool (i < j || i = j)
     | _ -> 
-      RErr (Printf.sprintf "Cannot perform smaller/equal-comparison on non-numerical types: %s and %s" 
+      RErr (sprintf "Cannot perform smaller/equal-comparison on non-numerical types: %s and %s" 
       (string_of_rval x) (string_of_rval y))
   )
 
@@ -300,7 +301,7 @@ let rec eval expression env =
     match (x, y) with
     | (RList i, RList j) -> RList (List.append i j)
     | _ -> 
-      RErr (Printf.sprintf "Cannot perform list-append on these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
+      RErr (sprintf "Cannot perform list-append on these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
   )
 
   | List [Symbol "nth"; a; b] -> (
@@ -313,7 +314,7 @@ let rec eval expression env =
     )
 
     | _ -> RErr (
-      Printf.sprintf "Cannot perform nth-operation on these expressions: %s and %s"
+      sprintf "Cannot perform nth-operation on these expressions: %s and %s"
       (string_of_rval x) (string_of_rval idx)
     )
   )
@@ -348,10 +349,10 @@ let rec eval expression env =
     | RString s -> (
       match float_of_string_opt s with
       | Some i -> RNum i
-      | _ -> RErr (Printf.sprintf "Cannot parse this string to a number: %s" s)
+      | _ -> RErr (sprintf "Cannot parse this string to a number: %s" s)
     )
 
-    | _ -> RErr (Printf.sprintf "Cannot convert this expression to a number: %s" (string_of_rval x))
+    | _ -> RErr (sprintf "Cannot convert this expression to a number: %s" (string_of_rval x))
   )
 
   | List [Symbol "quote"; List elems] -> RList (List.map (fun x -> eval x env) elems)
@@ -383,7 +384,7 @@ let rec eval expression env =
       )
     )
 
-    | _ -> RErr (Printf.sprintf "Attempt to invoke non-lambda: %s" (string_of_expr fun_expr))
+    | _ -> RErr (sprintf "Attempt to invoke non-lambda: %s" (string_of_expr fun_expr))
   )
 
   | List l -> RList (List.map (fun x -> eval x env) l)
