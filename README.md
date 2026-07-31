@@ -49,21 +49,23 @@ To exit:
   (if (< end start)
     (println "done!")
     (do 
-      ((println start) 
-      (count ((+ start 1) end))))))
+      (println start) 
+      (count (+ start 1) end))))
 
-(count (0 10))
+(let start 0)
+(let end 10)
+(count start end)
 ```
 
 #### Currying and Function Composition in action
 ```lisp
 (let add 
   (lambda (x)
-    (lambda (y) 
+    (lambda (y)
       (+ x y))))
 
-(let add10 (add (10)))
-(let z (add10 (20)))
+(let add10 (add 10))
+(let z (add10 20))
 (println (+ "z = " (to_string z)))
 (if (= z 30)
   (println "All good! Closures work as expected.")
@@ -76,30 +78,30 @@ To exit:
   (if (= correct_answer (readln prompt))
     (println "Correct!")
     (do 
-      ((println "False!\nTry again!")
-      ((input_loop (correct_answer prompt)))))))
+      (println "False!\nTry again!")
+      ((input_loop correct_answer prompt)))))
 
-(input_loop ("berlin" "What is the capital of Germany? "))
-(input_loop ("21" "What's 9 + 10? "))
-(input_loop ("ocaml" "What language is Nomad-LISP written in? "))
+(input_loop "berlin" "What is the capital of Germany? ")
+(input_loop "21" "What's 9 + 10? ")
+(input_loop "ocaml" "What language is Nomad-LISP written in? ")
 (println "All questions answered correctly!")
 ```
 
 #### Recursive helper functions
 ```lisp
-(letfun print_list (l) 
-  (do 
-    ((letfun aux (h t i) 
-      ((if (isunit t)
-        unit
-        (do 
-          ((print i)
+(letfun print_list (l)
+  (do
+    (letfun aux (h t i)
+      (if (isunit t)
+        acc
+        (do
+          (print i)
           (print ": ")
           (println h)
-          (aux ((head t) (tail t) (+ i 1))))))))
+          (aux (head t) (tail t) (+ i 1)))))
+        
+    (aux (head l) (tail l) 0)))
 
-    (aux ((head l) (tail l) 0)))))
-
-(let my_list (1 2 3 4 5 6 7 8 9 10))
-(print_list (my_list))
+(let my_list (quote (1 2 3 4 5 6 7 8 9 10)))
+(print_list my_list)
 ```

@@ -77,7 +77,7 @@ let rec eval expression env =
     | _ -> RErr (Printf.sprintf "Cannot perform tail-operation on non-list expression: %s" (string_of_rval l))
   )
 
-  | List [Symbol "do"; List body] -> (
+  | List (Symbol "do" :: body) -> (
     let rec aux last_expr left = 
       match left with
       | [] -> last_expr
@@ -334,8 +334,10 @@ let rec eval expression env =
 
     | _ -> RErr (Printf.sprintf "Cannot convert this expression to a number: %s" (string_of_rval x))
   )
+
+  | List [Symbol "quote"; List elems] -> RList (List.map (fun x -> eval x env) elems)
   
-  | List [fun_expr; List fun_params] -> (
+  | List (fun_expr :: fun_params) -> (
     let fun_binding = eval fun_expr env in
     match fun_binding with
     | RLambda (params, body, captured) -> (
@@ -362,7 +364,7 @@ let rec eval expression env =
       )
     )
 
-    | _ -> RErr (Printf.sprintf "Attempt to invoke non-lambda: %s" (string_of_rval fun_binding))
+    | _ -> RErr (Printf.sprintf "Attempt to invoke non-lambda: %s" (string_of_expr fun_expr))
   )
 
   | List l -> RList (List.map (fun x -> eval x env) l)

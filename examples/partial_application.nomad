@@ -1,11 +1,11 @@
 #!/usr/bin/env nomad
 (let add 
   (lambda (x)
-    (lambda (y) 
+    (lambda (y)
       (+ x y))))
 
-(let add10 (add (10)))
-(let z (add10 (20)))
+(let add10 (add 10))
+(let z (add10 20))
 (println (+ "z = " (to_string z)))
 (if (= z 30)
   (println "All good! Closures work as expected.")
