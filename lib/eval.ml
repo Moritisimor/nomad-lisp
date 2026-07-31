@@ -77,6 +77,17 @@ let rec eval expression env =
     | _ -> RErr (Printf.sprintf "Cannot perform tail-operation on non-list expression: %s" (string_of_rval l))
   )
 
+  | List [Symbol "chars"; str_expr] -> (
+    let str_val = eval str_expr env in
+    match str_val with
+    | RString s -> (
+      let chars = List.of_seq (String.to_seq s) in
+      RList (List.map (fun c -> RString (String.of_char c)) chars)
+    )
+
+    | _ -> RErr (Printf.sprintf "")
+  )
+
   | List (Symbol "do" :: body) -> (
     let rec aux last_expr left = 
       match left with

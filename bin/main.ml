@@ -5,7 +5,7 @@ open Nomad_lisp
 
 let () =
   match Sys.argv with
-  | [|_; "--help"|] -> (
+  | [|_; "--help"|] | [|_ ; "-h"|] -> (
     print_endline " \\\\";
     print_endline "  \\\\";
     print_endline " //\\\\";
@@ -15,7 +15,16 @@ let () =
     print_endline "https://github.com/Moritisimor/nomad-lisp";
   )
 
-  | [|_|] | [|_; "--repl"|] -> (
+  | [|_; "-e"; expr|] | [|_; "--eval"; expr|] -> (
+    match Eval.do_string expr (Env.new_env ()) with
+    | Ok evaluated -> print_endline (Runtime_value.string_of_rval evaluated)
+    | Error e -> (
+      print_endline e;
+      exit 1
+    )
+  )
+
+  | [|_|] | [|_; "--repl"|] | [|_; "-r"|] -> (
     let env = new_env () in
     let rec repl () =
       print_string "Nomad λ ";
