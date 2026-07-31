@@ -356,7 +356,7 @@ let rec eval expression env =
       )
 
       | false -> (
-        let this_env = { bindings = captured } in
+        let this_env = { bindings = Hashtbl.copy captured } in
         let rec aux left idx =
           match left with
           | [] -> ()
