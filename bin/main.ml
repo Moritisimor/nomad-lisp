@@ -19,7 +19,7 @@ let () =
     match Eval.do_string expr (Env.new_env ()) with
     | Ok evaluated -> print_endline (Runtime_value.string_of_rval evaluated)
     | Error e -> (
-      print_endline e;
+      Nomad_err.print_err e;
       exit 1
     )
   )
@@ -32,7 +32,7 @@ let () =
       let input = read_line () in
       (match do_string input env with
       | Ok evaluated -> Printf.printf "Evaluates to: %s\n" (string_of_rval evaluated)
-      | Error e -> print_endline e);
+      | Error e -> Nomad_err.print_err e);
       repl ()
     in repl ()
   )
@@ -41,7 +41,7 @@ let () =
     try
       match Eval.do_file input_file with
       | Ok _ -> ()
-      | Error e -> print_endline e; exit 1
+      | Error e -> Nomad_err.print_err e; exit 1
     with Sys_error e -> (
       print_endline ("Error while reading file: " ^ e);
       exit 1

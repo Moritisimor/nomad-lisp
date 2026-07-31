@@ -1,5 +1,6 @@
 open Tokens
 open Expr
+open Nomad_err
 
 let rec parse tokens =
   let rec aux acc left =
@@ -16,15 +17,15 @@ let rec parse tokens =
       | Error e -> Error e
     )
 
-    | x :: xs -> Error ("Unexpected token: " ^ string_of_token x)
-    | [] -> Error "Cannot parse EOF"
+    | x :: xs -> Error (ParseError ("Unexpected token: " ^ string_of_token x))
+    | [] -> Error (ParseError "Cannot parse EOF")
   in aux [] tokens
 
 and parse_list tokens =
   let rec aux acc left =
     match left with
     | RPAREN :: rest -> Ok (List (List.rev acc), rest)
-    | [] -> Error "Unexpected EOF"
+    | [] -> Error (ParseError "Unexpected EOF")
 
     | _ -> (
       match parse left with
@@ -36,4 +37,4 @@ and parse_list tokens =
 let expr_list_of_listlit l =
   match l with
   | List l -> Ok l
-  | _ -> Error "Root Expression is not a list"
+  | _ -> Error (ParseError "Root Expression is not a list")

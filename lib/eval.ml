@@ -4,6 +4,7 @@ open Helpers
 open Tokens
 open Parser
 open Env
+open Nomad_err
 
 let rec eval expression env =
   match expression with
@@ -387,7 +388,7 @@ let rec eval expression env =
 
   | List l -> RList (List.map (fun x -> eval x env) l)
 
-let do_string source_code env = 
+let do_string source_code env =
   match tokenize source_code with
   | Error e -> Error e
   | Ok tokens -> (
@@ -426,7 +427,7 @@ let do_file file_path =
           | [] -> Ok ()
           | x :: xs -> (
             match eval x env with
-            | RErr e -> Error ("Uncaught Error: " ^ e)
+            | RErr e -> Error (EvaluationError ("Uncaught Error: " ^ e))
             | _ -> aux env xs
           )
         in aux env ast

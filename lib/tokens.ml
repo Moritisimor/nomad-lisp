@@ -1,3 +1,5 @@
+open Nomad_err
+
 type token =
   | LPAREN
   | RPAREN
@@ -21,7 +23,7 @@ let rec string_of_token = function
 let scan_numlit char_stream =
   let rec aux acc left =
     match left with
-    | [] -> Error "Number literal was never ended"
+    | [] -> Error (TokenizerError "Number literal was never ended")
     | ')' :: xs 
       | '(' :: xs 
       | ' ' :: xs 
@@ -30,7 +32,7 @@ let scan_numlit char_stream =
         let num_string = String.of_seq (List.to_seq (List.rev acc)) in
         match float_of_string_opt num_string with
         | Some x -> Ok ((NUMLIT x), left)
-        | None -> Error (Printf.sprintf "Could not parse %s to a number" num_string)
+        | None -> Error (TokenizerError (Printf.sprintf "Could not parse %s to a number" num_string))
       )
 
     | x :: xs -> aux (x :: acc) xs
@@ -39,7 +41,7 @@ let scan_numlit char_stream =
 let scan_stringlit char_stream =
   let rec aux acc left =
     match left with
-    | [] -> Error "String literal was never ended"
+    | [] -> Error (TokenizerError "String literal was never ended")
     | '"' :: xs -> Ok (STRINGLIT (String.of_seq (List.to_seq (List.rev acc))), xs)
     | '\\' :: 'n' :: xs -> aux ('\n' :: acc) xs
     | '\\' :: 't' :: xs -> aux ('\t' :: acc) xs
@@ -60,7 +62,7 @@ let skip_to_newline char_stream =
 let scan_symbol char_stream =
   let rec aux acc left =
     match left with
-    | [] -> Error "Symbol was never ended"
+    | [] -> Error (TokenizerError "Symbol was never ended")
     | ')' :: xs 
       | '(' :: xs 
       | ' ' :: xs 
@@ -134,8 +136,8 @@ let tokenize text =
     let (l, r) = count_parens tokens in
     if l = r 
       then Ok tokens
-      else if l > r then Error "Unbalanced parantheses: one or more unclosed left parantheses"
-      else Error "Unbalanced parantheses: one or more superfluous right parantheses"
+      else if l > r then Error (TokenizerError "Unbalanced parantheses: one or more unclosed left parantheses")
+      else Error (TokenizerError "Unbalanced parantheses: one or more superfluous right parantheses")
   )
 
   | Error e -> Error e
