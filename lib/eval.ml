@@ -229,6 +229,13 @@ let rec eval expression env =
     | _ -> RBool false
   )
 
+  | List [Symbol "cons"; l; e] -> (
+    let (x, y) = (eval l env, eval e env) in
+    match x with
+    | RList i -> RList (List.cons y i)
+    | _ -> RErr (Printf.sprintf "Cannot perform cons-operation on non-list expression: %s" (string_of_rval x))
+  )
+
   | List [Symbol "="; a; b] -> (
     let (x, y) = (eval a env, eval b env) in
     match (x, y) with

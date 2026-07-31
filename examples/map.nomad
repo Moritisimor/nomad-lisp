@@ -4,9 +4,9 @@
     (letfun aux (acc h t)
       (if (isunit t)
         acc
-        (aux (append acc (quote ((f h)))) (head t) (tail t))))
+        (aux (cons acc (f h)) (car t) (cdr t))))
         
-    (aux () (head l) (tail l))))
+    (aux () (car l) (cdr l))))
 
 (let my_numbers (quote (1 2 3 4 5 6 7 8 9 10)))
 (letfun square (x) (* x x))
