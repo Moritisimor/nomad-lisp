@@ -7,6 +7,8 @@ open Env
 open Nomad_err
 open Printf
 
+let ( let* ) = bind
+
 let rec eval expression env =
   match expression with
   | NumLit x -> RNum x
@@ -391,48 +393,33 @@ let rec eval expression env =
   | List l -> RList (List.map (fun x -> eval x env) l)
 
 let do_string source_code env =
-  match tokenize source_code with
-  | Error e -> Error e
-  | Ok tokens -> (
-    match parse tokens with
-    | Error e -> Error e
-    | Ok (root_expr, _) -> (
-      match expr_list_of_listlit root_expr with
-      | Error e -> Error e
-      | Ok ast -> (
-        let rec aux env last_expr left =
-          match left with
-          | [] -> last_expr
-          | x :: xs -> aux env (eval x env) xs
-        in Ok (aux env RUnit ast)
-      )
-    )
-  )
+  let* tokens = tokenize source_code in
+  let* (root_expr, _) = parse tokens in
+  let* ast = expr_list_of_listlit root_expr in
 
+  let rec aux env last_expr left =
+    match left with
+    | [] -> last_expr
+    | x :: xs -> aux env (eval x env) xs
+  in Ok (aux env RUnit ast)
+      
 let do_file file_path =
   let file_channel = In_channel.open_text file_path in
   let source_code = In_channel.input_all file_channel in 
   In_channel.close file_channel;
   let env = new_env () in 
 
-  match tokenize source_code with
-  | Error e -> Error e
-  | Ok tokens -> (
-    match parse tokens with
-    | Error e -> Error e
-    | Ok (root_expr, _) -> (
-      match expr_list_of_listlit root_expr with
-      | Error e -> Error e
-      | Ok ast -> (
-        let rec aux env left =
-          match left with
-          | [] -> Ok ()
-          | x :: xs -> (
-            match eval x env with
-            | RErr e -> Error (EvaluationError ("Uncaught Error: " ^ e))
-            | _ -> aux env xs
-          )
-        in aux env ast
-      )
+  let* tokens = tokenize source_code in
+  let* (root_expr, _) = parse tokens in
+  let* ast = expr_list_of_listlit root_expr in
+  
+  let rec aux env left =
+    match left with
+    | [] -> Ok ()
+    | x :: xs -> (
+      match eval x env with
+      | RErr e -> Error (EvaluationError ("Uncaught Error: " ^ e))
+      | _ -> aux env xs
     )
-  )
+  in aux env ast
+
