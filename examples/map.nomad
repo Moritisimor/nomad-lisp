@@ -6,7 +6,7 @@
         acc
         (aux (+ acc 1) (car t) (cdr t))))
         
-      (aux 0 (car l) (cdr l))))
+    (aux 0 (car l) (cdr l))))
 
 (letfun rev (l)
   (do
@@ -32,4 +32,4 @@
 (let list_length (len my_squared_numbers))
 
 (println my_squared_numbers)
-(println (+ "The list is " (+ (to_string (len my_squared_numbers)) " elements long")))
+(println "The list is: " list_length " elements long!")

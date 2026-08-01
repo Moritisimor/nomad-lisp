@@ -319,13 +319,14 @@ let rec eval expression env =
     )
   )
 
-  | List [Symbol "print"; printee] -> (
-    print_string (string_of_rval (eval printee env));
+  | List (Symbol "print" :: params) -> (
+    List.iter (fun p -> print_string (string_of_rval (eval p env))) params;
     RUnit
   )
 
-  | List [Symbol "println"; printee] -> (
-    print_endline (string_of_rval (eval printee env));
+  | List (Symbol "println" :: params) -> (
+    List.iter (fun p -> print_string (string_of_rval (eval p env))) params;
+    print_endline "";
     RUnit
   )
 
