@@ -7,7 +7,7 @@ open Env
 open Nomad_err
 open Printf
 
-let ( let* ) = bind
+let ( let* ) = Result.bind
 
 let rec eval expression env =
   match expression with
@@ -412,7 +412,7 @@ let do_file file_path =
   let* tokens = tokenize source_code in
   let* (root_expr, _) = parse tokens in
   let* ast = expr_list_of_listlit root_expr in
-  
+
   let rec aux env left =
     match left with
     | [] -> Ok ()
