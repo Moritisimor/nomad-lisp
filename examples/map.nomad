@@ -1,13 +1,35 @@
 #!/usr/bin/env nomad
-(letfun map (f l)
+(letfun len (l)
+  (do 
+    (letfun aux (acc h t)
+      (if (isunit t)
+        acc
+        (aux (+ acc 1) (car t) (cdr t))))
+        
+      (aux 0 (car l) (cdr l))))
+
+(letfun rev (l)
   (do
     (letfun aux (acc h t)
       (if (isunit t)
         acc
-        (aux (cons acc (f h)) (car t) (cdr t))))
+        (aux (cons h acc) (car t) (cdr t))))
         
     (aux () (car l) (cdr l))))
 
-(let my_numbers (quote (1 2 3 4 5 6 7 8 9 10)))
+(letfun map (f l)
+  (do
+    (letfun aux (acc h t)
+      (if (isunit t)
+        (rev acc)
+        (aux (cons (f h) acc) (car t) (cdr t))))
+        
+    (aux () (car l) (cdr l))))
+
 (letfun square (x) (* x x))
-(println (map square my_numbers))
+(let my_numbers (quote (1 2 3 4 5 6 7 8 9 10)))
+(let my_squared_numbers (map (lambda (x) (* x x)) my_numbers))
+(let list_length (len my_squared_numbers))
+
+(println my_squared_numbers)
+(println (+ "The list is " (+ (to_string (len my_squared_numbers)) " elements long")))
