@@ -1,11 +1,22 @@
 #!/usr/bin/env nomad
+(letfun do_times (f i) 
+  (do 
+    (letfun aux (j)
+      (if (>= j i)
+        unit
+        (do
+          (f j)
+          (aux (+ j 1)))))
+          
+    (aux 0)))
+
 (letfun len (l)
   (do 
     (letfun aux (acc h t)
       (if (isunit t)
         acc
         (aux (+ acc 1) (car t) (cdr t))))
-        
+
     (aux 0 (car l) (cdr l))))
 
 (letfun rev (l)
@@ -33,3 +44,5 @@
 
 (println my_squared_numbers)
 (println "The list is: " list_length " elements long!")
+
+(do_times (lambda (x) (println "Hello Nr. " x)) 100)

@@ -85,11 +85,25 @@ let rec eval expression env =
     let str_val = eval str_expr env in
     match str_val with
     | RString s -> (
-      let chars = List.of_seq (String.to_seq s) in
+      let chars = Helpers.chars_of_string s in
       RList (List.map (fun c -> RString (String.make 1 c)) chars)
     )
 
     | _ -> RErr (sprintf "Cannot apply chars-operation on non-string expression: %s" (string_of_rval str_val))
+  )
+
+  | List [Symbol "lower"; str_expr] -> (
+    let str_val = eval str_expr env in
+    match str_val with
+    | RString s -> RString (String.lowercase_ascii s)
+    | _ -> RErr (sprintf "Cannot apply lower-operation on non-string expression: %s" (string_of_rval str_val))
+  )
+
+  | List [Symbol "trim"; str_expr] -> (
+    let str_val = eval str_expr env in
+    match str_val with
+    | RString s -> RString (String.trim s)
+    | _ -> RErr (sprintf "Cannot apply trim-operation on non-string expression: %s" (string_of_rval str_val))
   )
 
   | List (Symbol "do" :: body) -> (

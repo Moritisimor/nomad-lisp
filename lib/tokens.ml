@@ -95,27 +95,24 @@ let tokenize text =
   let rec aux acc left =
     match left with
     | [] -> Ok (List.rev (EOF :: RPAREN :: acc))
+    (* Whitespace *)
     | ' ' :: xs | '\t' :: xs | '\n' :: xs -> aux acc xs
 
+    (* Bool literals *)
     | 't' :: 'r' :: 'u' :: 'e' :: xs -> aux (BOOLLIT true :: acc) xs
     | 'f' :: 'a' :: 'l' :: 's' :: 'e' :: xs -> aux (BOOLLIT false :: acc) xs
 
+    (* Unit literals *)
     | 'u' :: 'n' :: 'i' :: 't' :: xs -> aux (UNITLIT :: acc) xs
 
+    (* Comments *)
     | '#' :: xs -> aux acc (skip_to_newline xs)
 
     | ')' :: xs -> aux (RPAREN :: acc) xs
     | '(' :: xs -> aux (LPAREN :: acc) xs
-    | '0' :: xs
-      | '1' :: xs
-      | '2' :: xs
-      | '3' :: xs
-      | '4' :: xs
-      | '5' :: xs
-      | '6' :: xs
-      | '7' :: xs
-      | '8' :: xs
-      | '9' :: xs -> (
+
+    | '-' :: ('0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9') :: xs (* Negative Numbers *)
+    | ('0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9') :: xs -> (
         match scan_numlit left with
         | Ok (parsed_numlit, rest) -> aux (parsed_numlit :: acc) rest
         | Error e -> Error e
