@@ -84,7 +84,7 @@ let rec eval expression env =
     match str_val with
     | RString s -> (
       let chars = List.of_seq (String.to_seq s) in
-      RList (List.map (fun c -> RString (String.of_char c)) chars)
+      RList (List.map (fun c -> RString (String.make 1 c)) chars)
     )
 
     | _ -> RErr (sprintf "Cannot apply chars-operation on non-string expression: %s" (string_of_rval str_val))
