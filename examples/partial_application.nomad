@@ -6,7 +6,7 @@
 
 (let add10 (add 10))
 (let x (add10 20))
-(println (+ "x = " (to_string x)))
+(println "x = " x)
 (if (= x 30)
   (println "All good! Closures work as expected.")
   (println "Uh oh, Closures do not work as expected!"))
