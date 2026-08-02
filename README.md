@@ -100,6 +100,6 @@ To exit:
         
     (aux (head l) (tail l) 0)))
 
-(let my_list (quote (1 2 3 4 5 6 7 8 9 10)))
+(let my_list (list (1 2 3 4 5 6 7 8 9 10)))
 (print_list my_list)
 ```
