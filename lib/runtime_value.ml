@@ -2,13 +2,18 @@ open Expr
 open Printf
 
 type runtime_value =
-  | RLambda of string list * expr * (string, runtime_value) Hashtbl.t
+  | RLambda of string list * expr * env
   | RNum of float
   | RString of string
   | RBool of bool
   | RList of runtime_value list
   | RUnit 
   | RErr of string
+
+and env = {
+  bindings : (string, runtime_value) Hashtbl.t;
+  parent : env option
+}
 
 let rec string_of_rval = function
   | RLambda _ -> "<FUNCTION>"
@@ -30,3 +35,20 @@ let rec string_of_rval = function
 
   | RUnit -> "<UNIT>"
   | RErr x -> Printf.sprintf "ERROR (%s)" x
+
+
+let new_env parent = {
+  bindings = Hashtbl.create 0;
+  parent = parent
+}
+
+let rec get_binding key environ =
+  match Hashtbl.find_opt environ.bindings key with
+  | Some v -> v
+  | None -> (
+    match environ.parent with
+    | Some e -> get_binding key e
+    | None -> RErr ("No such variable: " ^ key)
+  )
+
+let rec set_binding key value environ = Hashtbl.add environ.bindings key value

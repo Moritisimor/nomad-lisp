@@ -3,7 +3,6 @@ open Expr
 open Helpers
 open Tokens
 open Parser
-open Env
 open Nomad_err
 open Printf
 
@@ -14,8 +13,8 @@ let rec eval expression env =
   | NumLit x -> RNum x
   | StringLit x -> RString x
   | BoolLit x -> RBool x
-  | Symbol s -> Env.get_binding env s
-  | Lambda (params, body) -> RLambda (params, body, Hashtbl.copy env.bindings)
+  | Symbol s -> get_binding s env
+  | Lambda (params, body) -> RLambda (params, body, env)
   | Unit -> RUnit
   
   | List [Symbol "letfun"; Symbol name; List params; body] -> (
@@ -31,14 +30,14 @@ let rec eval expression env =
     match param_list with
     | Error e -> RErr e
     | Ok p -> (
-      Env.set_binding env name (RLambda (p, body, env.bindings));
+      set_binding name (RLambda (p, body, env)) env;
       RUnit
     )
   )
 
   | List [Symbol "let"; Symbol binding_name; binding_value] -> (
     let evaluated_binding_value = eval binding_value env in
-    Env.set_binding env binding_name evaluated_binding_value;
+    set_binding binding_name evaluated_binding_value env;
     RUnit
   )
 
@@ -54,7 +53,7 @@ let rec eval expression env =
     in let param_list = aux [] params in 
     match param_list with
     | Error e -> RErr e
-    | Ok p -> RLambda (p, body, env.bindings)
+    | Ok p -> RLambda (p, body, env)
   )
 
   | List [Symbol "head"; list_expr] | List [Symbol "car"; list_expr] -> (
@@ -386,13 +385,13 @@ let rec eval expression env =
       )
 
       | false -> (
-        let this_env = { bindings = captured } in
+        let this_env = Runtime_value.new_env (Some env) in
         let rec aux left idx =
           match left with
           | [] -> ()
           | x :: xs -> (
             (* This is honestly kinda stupid :/ *)
-            Env.set_binding this_env x (eval (List.nth fun_params idx) this_env);
+            set_binding x (eval (List.nth fun_params idx) this_env) this_env;
             aux xs (idx + 1)
           )
 
@@ -421,7 +420,7 @@ let do_file file_path =
   let file_channel = In_channel.open_text file_path in
   let source_code = In_channel.input_all file_channel in 
   In_channel.close file_channel;
-  let env = new_env () in 
+  let env = new_env None in 
 
   let* tokens = tokenize source_code in
   let* (root_expr, _) = parse tokens in

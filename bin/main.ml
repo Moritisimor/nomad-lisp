@@ -1,6 +1,5 @@
 open Nomad_lisp.Eval
 open Nomad_lisp.Runtime_value
-open Nomad_lisp.Env
 open Nomad_lisp
 
 let () =
@@ -16,7 +15,7 @@ let () =
   )
 
   | [|_; "-e"; expr|] | [|_; "--eval"; expr|] -> (
-    match Eval.do_string expr (Env.new_env ()) with
+    match Eval.do_string expr (new_env None) with
     | Ok evaluated -> print_endline (Runtime_value.string_of_rval evaluated)
     | Error e -> (
       Nomad_err.print_err e;
@@ -25,7 +24,7 @@ let () =
   )
 
   | [|_|] | [|_; "--repl"|] | [|_; "-r"|] -> (
-    let env = new_env () in
+    let env = new_env None in
     let rec repl () =
       print_string "Nomad λ ";
       Out_channel.flush stdout;
