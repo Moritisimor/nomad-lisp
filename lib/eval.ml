@@ -385,17 +385,13 @@ let rec eval expression env =
       )
 
       | false -> (
-        let this_env = Runtime_value.new_env (Some env) in
-        let rec aux left idx =
+        let this_env = new_env (Some captured) in
+        let kv_pairs = List.combine params fun_params in
+        let rec aux left =
           match left with
           | [] -> ()
-          | x :: xs -> (
-            (* This is honestly kinda stupid :/ *)
-            set_binding x (eval (List.nth fun_params idx) this_env) this_env;
-            aux xs (idx + 1)
-          )
-
-        in aux params 0;
+          | (k, v) :: xs -> set_binding k (eval v env) this_env; aux xs
+        in aux kv_pairs;
         eval body this_env 
       )
     )
@@ -403,7 +399,7 @@ let rec eval expression env =
     | _ -> RErr (sprintf "Attempt to invoke non-lambda: %s" (string_of_expr fun_expr))
   )
 
-  | List l -> RList (List.map (fun x -> eval x env) l)
+  | List [] -> RList []
 
 let do_string source_code env =
   let* tokens = tokenize source_code in

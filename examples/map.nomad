@@ -45,4 +45,4 @@
 (println my_squared_numbers)
 (println "The list is: " list_length " elements long!")
 
-(do_times (lambda (x) (println "Hello Nr. " x)) 100)
+(do_times (lambda (x) (println "Hello Nr. " x)) 10)
