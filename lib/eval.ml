@@ -405,7 +405,7 @@ let rec eval expression env =
     | _ -> Error (EvaluationError (sprintf "Cannot convert this expression to a number: %s" (string_of_rval x)))
   )
 
-  | List [Symbol "quote"; List elems] -> (
+  | List [Symbol "list"; List elems] -> (
     let rec aux acc left =
       match left with
       | [] -> Ok (List.rev acc)
