@@ -4,9 +4,7 @@
     (let x (string_to_num (readln "Enter x: ")))
     (let y (string_to_num (readln "Enter y: ")))
     (if (or (iserr x) (iserr y))
-      (do
-        (println "Couldn't parse x and/or y!")
-        (input_loop))
+      (println "Couldn't parse x and/or y!")
       (do
         (let op (readln "Enter op: "))
         (if (= op "+")

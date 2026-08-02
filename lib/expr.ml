@@ -22,5 +22,5 @@ let rec string_of_expr = function
       | [] -> acc
       | [x] -> acc ^ (string_of_expr x)
       | x :: xs -> aux (acc ^ string_of_expr x ^ " ") xs
-    in aux "List(" l
+    in (aux "List(" l) ^ ")"
   )
