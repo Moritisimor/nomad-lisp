@@ -10,7 +10,13 @@ let () =
     print_endline " //\\\\";
     print_endline "//  \\\\ \n";
 
-    print_endline "The Magnificent Nomad-LISP Interpretation System";
+    print_endline "The Magnificent Nomad-LISP Interpretation System\n";
+    print_endline "Omit all arguments to enter REPL Mode.";
+    print_endline "Use the -e | --eval flag to evaluate an expression which is passed as an argument.";
+    print_endline "\tExample: nomad -e '(+ 1 2)' # => 3\n";
+    print_endline "You can also pass a file to be run as a script.";
+    print_endline "\tExample: nomad my_script.nomad\n";
+    print_endline "For More information, visit:";
     print_endline "https://github.com/Moritisimor/nomad-lisp";
   )
 
