@@ -35,7 +35,6 @@ let rec string_of_rval = function
 
   | RUnit -> "<UNIT>"
 
-
 let new_env parent = {
   bindings = Hashtbl.create 0;
   parent = parent
@@ -50,4 +49,7 @@ let rec get_binding key environ =
     | None -> Error (EvaluationError ("No such variable: " ^ key))
   )
 
-let rec set_binding key value environ = Hashtbl.add environ.bindings key value
+let set_binding key value environ =
+  match Hashtbl.find_opt environ.bindings key with
+  | None -> Ok (Hashtbl.add environ.bindings key value)
+  | Some _ -> Error (EvaluationError (sprintf "Cannot bind %s: Already exists in this scope" key))

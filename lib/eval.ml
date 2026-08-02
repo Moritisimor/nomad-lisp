@@ -23,6 +23,13 @@ let rec eval expression env =
     | Ok e -> Ok e
     | Error e -> eval on_fail env
   )
+
+  | List [Symbol "throw"; throw_expr] -> (
+    let* msg = eval throw_expr env in 
+    match msg with
+    | RString s -> Error (EvaluationError s)
+    | _ -> Error (EvaluationError ("Cannot throw non-string: " ^ string_of_rval msg))
+  )
   
   | List [Symbol "letfun"; Symbol name; List params; body] -> (
     let rec aux acc left = 
@@ -37,14 +44,14 @@ let rec eval expression env =
     match param_list with
     | Error e -> Error (EvaluationError e)
     | Ok p -> (
-      set_binding name (RLambda (p, body, env)) env;
+      let* _ = set_binding name (RLambda (p, body, env)) env in
       Ok RUnit
     )
   )
 
   | List [Symbol "let"; Symbol binding_name; binding_value] -> (
     let* evaluated_binding_value = eval binding_value env in
-    set_binding binding_name evaluated_binding_value env;
+    let* _ = set_binding binding_name evaluated_binding_value env in
     Ok RUnit
   )
 
@@ -128,6 +135,15 @@ let rec eval expression env =
     in aux RUnit body
   )
 
+  | List [Symbol "exit"] -> exit 0
+  | List [Symbol "exit"; c] -> (
+    let* code = eval c env in
+    match code with
+    | RNum a -> exit (int_of_float a)
+    | _ -> 
+      Error (EvaluationError (sprintf "Exit Code is not a number. Expected a number, got %s" (string_of_rval code)))
+  )
+
   | List [Symbol "+"; lhs; rhs] -> (
     let* x = eval lhs env in
     let* y = eval rhs env in
@@ -137,15 +153,6 @@ let rec eval expression env =
     | (RString a, RString b) -> Ok (RString (a ^ b))
     | _ -> 
       Error (EvaluationError (sprintf "Cannot add these expressions: %s and %s" (string_of_rval x) (string_of_rval y)))
-  )
-
-  | List [Symbol "exit"] -> exit 0
-  | List [Symbol "exit"; c] -> (
-    let* code = eval c env in
-    match code with
-    | RNum a -> exit (int_of_float a)
-    | _ -> 
-      Error (EvaluationError (sprintf "Exit Code is not a number. Expected a number, got %s" (string_of_rval code)))
   )
 
   | List [Symbol "-"; lhs; rhs] -> (
@@ -210,42 +217,6 @@ let rec eval expression env =
       Error (EvaluationError (
         sprintf "Condition of unless-construct does not evaluate to a bool: %s" (string_of_rval evaluated_cond)
       ))
-  )
-
-  | List [Symbol "not"; boolexpr] -> (
-    let* evaluated_boolexpr = eval boolexpr env in
-    match evaluated_boolexpr with
-    | RBool b -> (
-      match b with
-      | true -> Ok (RBool false)
-      | false -> Ok (RBool true)
-    )
-
-    | _ -> 
-      Error (EvaluationError (sprintf "Cannot negate non-boolean expression: %s" (string_of_rval evaluated_boolexpr)))
-  )
-
-  | List [Symbol "and"; boolexpr1; boolexpr2] -> (
-    let* evaluated1 = eval boolexpr1 env in 
-    let* evaluated2 = eval boolexpr2 env in
-    
-    match (evaluated1, evaluated2) with
-    | (RBool b, RBool a) -> Ok (RBool (a && b))
-    | _ -> Error (EvaluationError (
-      sprintf "Cannot perform logical-and on these expressions: %s and %s" 
-      (string_of_rval evaluated1) (string_of_rval evaluated2) 
-    ))
-  )
-
-  | List [Symbol "or"; boolexpr1; boolexpr2] -> (
-    let* evaluated1 = eval boolexpr1 env in
-    let* evaluated2 = eval boolexpr2 env in
-    match (evaluated1, evaluated2) with
-    | (RBool b, RBool a) -> Ok (RBool (a || b))
-    | _ -> Error (EvaluationError (
-      sprintf "Cannot perform logical-or on these expressions: %s and %s" 
-      (string_of_rval evaluated1) (string_of_rval evaluated2) 
-    ))
   )
 
   | List [Symbol "isunit"; a] -> (
@@ -371,23 +342,6 @@ let rec eval expression env =
     ))
   )
 
-  | List [Symbol "nth"; a; b] -> (
-    let* x = eval a env in 
-    let* idx = eval b env in
-
-    match (x, idx) with
-    | (RList i, RNum j) -> (
-      match List.nth_opt i (int_of_float j) with
-      | Some elem -> Ok elem
-      | None -> Ok RUnit
-    )
-
-    | _ -> Error (EvaluationError (
-      sprintf "Cannot perform nth-operation on these expressions: %s and %s"
-      (string_of_rval x) (string_of_rval idx)
-    ))
-  )
-
   | List (Symbol "print" :: params) -> (
     let rec aux acc left =
       match left with
@@ -462,6 +416,18 @@ let rec eval expression env =
     in let* exprs = aux [] elems in 
     Ok (RList exprs)
   )
+
+  | List [Symbol "print_env"] -> (
+    let rec aux e idx =
+      printf "Scope %d:\n" idx;
+      e.bindings |>
+      Hashtbl.iter (fun k v -> printf "\t%s: %s\n" k (string_of_rval v));
+
+      match e.parent with
+      | None -> Ok RUnit
+      | Some p -> aux p (idx + 1)
+    in aux env 0 
+  )
   
   | List (fun_expr :: fun_params) -> (
     let* fun_binding = eval fun_expr env in
@@ -482,7 +448,8 @@ let rec eval expression env =
           | [] -> Ok ()
           | (k, v) :: xs -> (
             let* evaluated = eval v env in
-            set_binding k evaluated this_env; aux xs
+            let* _ = set_binding k evaluated this_env in 
+            aux xs
           )
         in match aux kv_pairs with
         | Ok _ -> eval body this_env 
@@ -506,11 +473,16 @@ let do_string source_code env =
     | x :: xs -> aux env (eval x env) xs
   in aux env (Ok RUnit) ast
       
+let load_stdlib env =
+  Stdlib.stdlib_src |>
+  List.iter (fun f -> do_string f env |> ignore)
+
 let do_file file_path =
   let file_channel = In_channel.open_text file_path in
   let source_code = In_channel.input_all file_channel in 
   In_channel.close file_channel;
-  let env = new_env None in 
+  let env = new_env None in
+  load_stdlib env;
 
   let* tokens = tokenize source_code in
   let* (root_expr, _) = parse tokens in

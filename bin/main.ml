@@ -31,6 +31,8 @@ let () =
 
   | [|_|] | [|_; "--repl"|] | [|_; "-r"|] -> (
     let env = new_env None in
+    load_stdlib env;
+
     let rec repl () =
       print_string "Nomad λ ";
       Out_channel.flush stdout;
