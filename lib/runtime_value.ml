@@ -53,3 +53,12 @@ let set_binding key value environ =
   match Hashtbl.find_opt environ.bindings key with
   | None -> Ok (Hashtbl.add environ.bindings key value)
   | Some _ -> Error (EvaluationError (sprintf "Cannot bind %s: Already exists in this scope" key))
+
+let rec mutate_binding key value environ =
+  match Hashtbl.find_opt environ.bindings key with
+  | Some _ -> Ok (Hashtbl.replace environ.bindings key value)
+  | None -> (
+    match environ.parent with
+    | Some e -> mutate_binding key value e
+    | None -> Error (EvaluationError (sprintf "Cannot mutate non-existant binding: %s" key))
+  )

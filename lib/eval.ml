@@ -55,6 +55,12 @@ let rec eval expression env =
     Ok RUnit
   )
 
+  | List [Symbol "mut"; Symbol binding_name; binding_value] -> (
+    let* evaluated_binding_value = eval binding_value env in
+    let* _ = mutate_binding binding_name evaluated_binding_value env in
+    Ok RUnit
+  )
+
   | List [Symbol "lambda"; List params; body] | List [Symbol "λ"; List params; body] -> (
     let rec aux acc left = 
       match left with
@@ -121,6 +127,17 @@ let rec eval expression env =
     | RString s -> Ok (RString (String.trim s))
     | _ -> 
       Error (EvaluationError (sprintf "Cannot apply trim-operation on non-string expression: %s" (string_of_rval str_val)))
+  )
+
+  | List [Symbol "splitws"; str_expr] -> (
+    let* str_val = eval str_expr env in
+    match str_val with
+    | RString s -> 
+      let parts = List.filter (fun s -> String.trim s <> "") (String.split_on_char ' ' s) 
+      in Ok (RList (List.map (fun x -> RString x) parts))
+
+    | _ -> 
+      Error (EvaluationError (sprintf "Cannot apply splitws-operation on non-string expression: %s" (string_of_rval str_val)))
   )
 
   | List (Symbol "do" :: body) -> (
@@ -273,8 +290,8 @@ let rec eval expression env =
     | (RNum i, RNum j) -> Ok (RBool (i = j))
     | (RString i, RString j) -> Ok (RBool (i = j))
     | (RBool i, RBool j) -> Ok (RBool (i = j))
-    | _ ->
-      Error (EvaluationError (sprintf "Cannot compare these expressions: %s and %s" (string_of_rval x) (string_of_rval y)))
+    | (RList i, RList j) -> Ok (RBool (i = j))
+    | _ -> Ok (RBool false)
   )
 
   | List [Symbol "=="; a; b] -> if a = b 

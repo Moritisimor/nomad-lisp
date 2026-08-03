@@ -47,6 +47,8 @@ let stdlib_src = [
       (aux 0 (car l) (cdr l))))
   ";
 
+  "(letfun strlen (s) (len (chars s)))";
+
   "
   (letfun foreach (f l)
     (do

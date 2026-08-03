@@ -11,11 +11,11 @@
     (let j (get_job person))
     (println n " is " a " years old and works as a " j ".")))
 
-(let people (list (
-  (make_person "Max Mustermann" 20 "Electrician")
-  (make_person "Erika Mustermann" 21 "Software Engineer")
-  (make_person "John Doe" 23 "Plumber")
-  (make_person "Jane Doe" 19 "Lumberjack")
-)))
+(let people 
+  (list 
+    ((make_person "Max Mustermann" 20 "Electrician")
+    (make_person "Erika Mustermann" 21 "Software Engineer")
+    (make_person "John Doe" 23 "Plumber")
+    (make_person "Jane Doe" 19 "Lumberjack"))))
 
 (foreach print_person_info people)
