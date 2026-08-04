@@ -1,7 +1,48 @@
 let stdlib_src = [
   "(letfun not (a) (if a false true))";
-  "(letfun and (a b) (if a (if b true false) false))";
-  "(letfun or (a b) (if a true (if b true false)))";
+  "(letfun inc (i) (+ i 1))";
+  "(letfun dec (i) (- i 1))";
+
+  "
+  (letfun foldl (f acc l)
+    (do
+      (letfun aux (a h t)
+        (if (isunit t)
+          a
+          (aux (f a h) (car t) (cdr t))))
+      
+    (aux acc (car l) (cdr l))))
+  ";
+
+  "
+  (letfun begins_with (l1 l2)
+    (if (< (len l1) (len l2))
+      false
+      (do
+        (letfun aux (l1h l1t l2h l2t)
+          (if (isunit l2t)
+            true
+            (if (= l1h l2h)
+              (aux (car l1t) (cdr l1t) (car l2t) (cdr l2t))
+              false)))
+                
+        (aux (car l1) (cdr l1) (car l2) (cdr l2)))))
+  ";
+  
+  "(letfun ends_with (l1 l2) (begins_with (rev l1) (rev l2)))";
+  "(letfun has_prefix (s1 s2) (begins_with (chars s1) (chars s2)))";
+  "(letfun has_suffix (s1 s2) (ends_with (chars s1) (chars s2)))";
+
+  "
+  (letfun list_init (n f)
+    (do
+      (letfun aux (acc i)
+        (if (< i 0)
+          acc
+          (aux (cons (f i) acc) (dec i))))
+          
+      (aux () (dec n))))
+  ";
 
   "
   (letfun map (f l)
@@ -42,7 +83,7 @@ let stdlib_src = [
       (letfun aux (acc h t)
         (if (isunit t)
           acc
-          (aux (+ acc 1) (car t) (cdr t))))
+          (aux (inc acc) (car t) (cdr t))))
 
       (aux 0 (car l) (cdr l))))
   ";
@@ -85,7 +126,7 @@ let stdlib_src = [
           (throw \"List has no such index\")
           (if (= i 0)
             h
-            (aux (car t) (cdr t) (- i 1)))))
+            (aux (car t) (cdr t) (dec i)))))
             
       (aux (car l) (cdr l) idx)))
   ";

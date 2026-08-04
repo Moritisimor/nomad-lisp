@@ -61,6 +61,13 @@ let rec eval expression env =
     Ok RUnit
   )
 
+  | List [Symbol "exec"; exec_expr] -> (
+    let* evaluated = eval exec_expr env in
+    match evaluated with
+    | RString s -> Ok (RNum (float_of_int (Sys.command s)))
+    | _ -> Error (EvaluationError ("Cannot execute non-string expression: " ^ (string_of_rval evaluated)))
+  )
+
   | List [Symbol "lambda"; List params; body] | List [Symbol "λ"; List params; body] -> (
     let rec aux acc left = 
       match left with
@@ -68,12 +75,9 @@ let rec eval expression env =
       | x :: xs -> (
         match x with
         | Symbol s -> aux (s :: acc) xs
-        | _ -> Error "Non-Symbol in parameter list"
+        | _ -> Error (EvaluationError "Non-Symbol in parameter list")
       )
-    in let param_list = aux [] params in 
-    match param_list with
-    | Error e -> Error (EvaluationError e)
-    | Ok p -> Ok (RLambda (p, body, env))
+    in let* param_list = aux [] params in Ok (RLambda (param_list, body, env))
   )
 
   | List [Symbol "head"; list_expr] | List [Symbol "car"; list_expr] -> (
@@ -188,7 +192,7 @@ let rec eval expression env =
 
     match (x, y) with
     | (RNum a, RNum b) -> Ok (RNum (a *. b))
-    | (RString a, RNum b) -> Ok (RString (mul_string a b))
+    | (RString a, RNum b) | (RNum b, RString a) -> Ok (RString (mul_string a b))
     | _ -> 
       Error (EvaluationError (sprintf "Cannot multiply these expressions: %s and %s" (string_of_rval x) (string_of_rval y)))
   )
@@ -219,6 +223,52 @@ let rec eval expression env =
       Error (EvaluationError (
         sprintf "Condition of if-construct does not evaluate to a bool: %s" (string_of_rval evaluated_cond)
       ))
+  )
+
+  | List [Symbol "or"; a; b] -> (
+    let* evaluated_a = eval a env in
+    match evaluated_a with
+    | RBool x -> (
+      match x with
+      | true -> Ok (RBool true)
+      | false -> (
+        let* evaluated_b = eval b env in
+        match evaluated_b with
+        | RBool y -> (
+          match y with
+          | true -> Ok (RBool true)
+          | false -> Ok (RBool false)
+        )
+
+        | _ -> 
+          Error (EvaluationError (sprintf "Cannot apply logical-or on non-bool expression: %s" (string_of_rval evaluated_b)))
+      )
+    )
+
+    | _ -> 
+      Error (EvaluationError (sprintf "Cannot apply logical-or on non-bool expression: %s" (string_of_rval evaluated_a)))
+  )
+
+  | List [Symbol "and"; a; b] -> (
+    let* evaluated_a = eval a env in
+    match evaluated_a with
+    | RBool x -> (
+      match x with
+      | false -> Ok (RBool false)
+      | true -> (
+        let* evaluated_b = eval b env in
+        match evaluated_b with
+        | RBool y -> (
+          match y with
+          | true -> Ok (RBool true)
+          | false -> Ok (RBool false)
+        )
+
+        | _ -> Error (EvaluationError (sprintf "Cannot apply logical-and on non-bool expression: %s" (string_of_rval evaluated_b)))
+      )
+    )
+
+    | _ -> Error (EvaluationError (sprintf "Cannot apply logical-and on non-bool expression: %s" (string_of_rval evaluated_a)))
   )
 
   | List [Symbol "unless"; cond; true_body; false_body] -> (
