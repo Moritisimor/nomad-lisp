@@ -61,6 +61,30 @@ let rec eval expression env =
     Ok RUnit
   )
 
+  | List (Symbol "switch" :: scrutinee :: cases) -> (
+    let* evaluated_scrutinee = eval scrutinee env in
+
+    let rec aux left =
+      match left with
+      | [] -> Ok RUnit
+      
+      | List [matcher; on_match] :: xs -> (
+        if matcher = Symbol "_" then
+          let* evaluated = eval on_match env in
+          Ok evaluated
+        else
+          let* evaluated_matcher = eval matcher env in
+          if evaluated_matcher = evaluated_scrutinee then 
+            let* evaluated = eval on_match env in
+            Ok evaluated
+          else
+            aux xs
+      )
+
+      | _ -> Error (EvaluationError "Malformed switch-arm syntax")
+    in aux cases
+  )
+
   | List [Symbol "exec"; exec_expr] -> (
     let* evaluated = eval exec_expr env in
     match evaluated with

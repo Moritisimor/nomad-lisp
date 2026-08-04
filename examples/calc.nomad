@@ -14,19 +14,16 @@
       (input_loop)))
 
     (let op (readln "Enter operator: "))
-    (if (= op "+")
-      (println (+ x y))
-    (if (= op "-")
-      (println (- x y))
-    (if (= op "*")
-      (println (* x y))
-    (if (= op "/")
-      (do
-        (if (= 0 y)
-          (println "Cannot divide by 0!")
-          (println (/ x y))))
+    (println
+      (switch op
+        ("+" (+ x y))
+        ("-" (- x y))
+        ("*" (* x y))
+        ("/" (if (= y 0)
+          "Cannot divide by zero!"
+          (/ x y)))
           
-      (println "Unknown operator!")))))
+        (_ "Unknown operator!")))
           
     (input_loop)))
 
