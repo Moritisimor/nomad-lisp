@@ -96,9 +96,9 @@ To exit:
         unit
         (do
           (println i ": " h)
-          (aux (head t) (tail t) (+ i 1)))))
+          (aux (car t) (cdr t) (+ i 1)))))
         
-    (aux (head l) (tail l) 0)))
+    (aux (car l) (cdr l) 0)))
 
 (let my_list (list (1 2 3 4 5 6 7 8 9 10)))
 (print_list my_list)
