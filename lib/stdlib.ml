@@ -67,6 +67,20 @@ let stdlib_src = [
   ";
 
   "
+  (letfun filter (f l)
+    (do
+      (letfun aux (acc h t)
+        (if (isunit t)
+          (rev acc)
+          (do
+            (if (f h)
+              (aux (cons h acc) (car t) (cdr t))
+              (aux acc (car t) (cdr t))))))
+        
+      (aux () (car l) (cdr l))))
+  ";
+
+  "
   (letfun rev (l)
     (do
       (letfun aux (acc h t)

@@ -450,7 +450,7 @@ let native_funs = [
         Error (EvaluationError (sprintf "Cannot perform head-operation on non-list expression: %s" (string_of_rval l)))
     )
 
-    | _ -> err "head" 1 (List.length params)
+    | _ -> err "car" 1 (List.length params)
   )));
 
   ("cdr", (fun params env -> (
@@ -467,7 +467,7 @@ let native_funs = [
       | _ -> Error (EvaluationError (sprintf "Cannot perform tail-operation on non-list expression: %s" (string_of_rval l)))
     )
 
-    | _ -> err "tail" 1 (List.length params)
+    | _ -> err "cdr" 1 (List.length params)
   )));
 
   ("cons", (fun params env -> (
