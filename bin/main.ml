@@ -21,7 +21,7 @@ let () =
   )
 
   | [|_; "-e"; expr|] | [|_; "--eval"; expr|] -> (
-    match Eval.do_string expr (new_env None) with
+    match Eval.do_string expr Interpreter.new_interpreter with
     | Ok evaluated -> print_endline (Runtime_value.string_of_rval evaluated)
     | Error e -> (
       Nomad_err.print_err e;
@@ -30,14 +30,13 @@ let () =
   )
 
   | [|_|] | [|_; "--repl"|] | [|_; "-r"|] -> (
-    let env = new_env None in
-    load_stdlib env;
+    let interpreter = Interpreter.new_interpreter in
 
     let rec repl () =
       print_string "Nomad λ ";
       Out_channel.flush stdout;
       let input = read_line () in
-      (match do_string input env with
+      (match do_string input interpreter with
       | Ok evaluated -> Printf.printf "Evaluates to: %s\n" (string_of_rval evaluated)
       | Error e -> Nomad_err.print_err e);
       repl ()

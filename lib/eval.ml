@@ -85,13 +85,6 @@ let rec eval expression env =
     in aux cases
   )
 
-  | List [Symbol "exec"; exec_expr] -> (
-    let* evaluated = eval exec_expr env in
-    match evaluated with
-    | RString s -> Ok (RNum (float_of_int (Sys.command s)))
-    | _ -> Error (EvaluationError ("Cannot execute non-string expression: " ^ (string_of_rval evaluated)))
-  )
-
   | List [Symbol "lambda"; List params; body] | List [Symbol "λ"; List params; body] -> (
     let rec aux acc left = 
       match left with
@@ -104,70 +97,6 @@ let rec eval expression env =
     in let* param_list = aux [] params in Ok (RLambda (param_list, body, env))
   )
 
-  | List [Symbol "head"; list_expr] | List [Symbol "car"; list_expr] -> (
-    let* l = eval list_expr env in
-    match l with
-    | RList content -> (
-      match content with
-      | head :: _ -> Ok head
-      | _ -> Ok RUnit
-    )
-
-    | _ -> 
-      Error (EvaluationError (sprintf "Cannot perform head-operation on non-list expression: %s" (string_of_rval l)))
-  )
-
-  | List [Symbol "tail"; list_expr] | List [Symbol "cdr"; list_expr] -> (
-    let* l = eval list_expr env in
-    match l with
-    | RList content -> (
-      match content with
-      | _ :: tail -> Ok (RList tail)
-      | _ -> Ok RUnit
-    )
-
-    | _ -> Error (EvaluationError (sprintf "Cannot perform tail-operation on non-list expression: %s" (string_of_rval l)))
-  )
-
-  | List [Symbol "chars"; str_expr] -> (
-    let* str_val = eval str_expr env in
-    match str_val with
-    | RString s -> (
-      let chars = Helpers.chars_of_string s in
-      Ok (RList (List.map (fun c -> RString (String.make 1 c)) chars))
-    )
-
-    | _ -> 
-      Error (EvaluationError (sprintf "Cannot apply chars-operation on non-string expression: %s" (string_of_rval str_val)))
-  )
-
-  | List [Symbol "lower"; str_expr] -> (
-    let* str_val = eval str_expr env in
-    match str_val with
-    | RString s -> Ok (RString (String.lowercase_ascii s))
-    | _ -> 
-      Error (EvaluationError (sprintf "Cannot apply lower-operation on non-string expression: %s" (string_of_rval str_val)))
-  )
-
-  | List [Symbol "trim"; str_expr] -> (
-    let* str_val = eval str_expr env in
-    match str_val with
-    | RString s -> Ok (RString (String.trim s))
-    | _ -> 
-      Error (EvaluationError (sprintf "Cannot apply trim-operation on non-string expression: %s" (string_of_rval str_val)))
-  )
-
-  | List [Symbol "splitws"; str_expr] -> (
-    let* str_val = eval str_expr env in
-    match str_val with
-    | RString s -> 
-      let parts = List.filter (fun s -> String.trim s <> "") (String.split_on_char ' ' s) 
-      in Ok (RList (List.map (fun x -> RString x) parts))
-
-    | _ -> 
-      Error (EvaluationError (sprintf "Cannot apply splitws-operation on non-string expression: %s" (string_of_rval str_val)))
-  )
-
   | List (Symbol "do" :: body) -> (
     let rec aux last_expr left = 
       match left with
@@ -178,60 +107,6 @@ let rec eval expression env =
         | Error e -> Error e
       )
     in aux RUnit body
-  )
-
-  | List [Symbol "exit"] -> exit 0
-  | List [Symbol "exit"; c] -> (
-    let* code = eval c env in
-    match code with
-    | RNum a -> exit (int_of_float a)
-    | _ -> 
-      Error (EvaluationError (sprintf "Exit Code is not a number. Expected a number, got %s" (string_of_rval code)))
-  )
-
-  | List [Symbol "+"; lhs; rhs] -> (
-    let* x = eval lhs env in
-    let* y = eval rhs env in
-
-    match (x, y) with
-    | (RNum a, RNum b) -> Ok (RNum (a +. b))
-    | (RString a, RString b) -> Ok (RString (a ^ b))
-    | _ -> 
-      Error (EvaluationError (sprintf "Cannot add these expressions: %s and %s" (string_of_rval x) (string_of_rval y)))
-  )
-
-  | List [Symbol "-"; lhs; rhs] -> (
-    let* x = eval lhs env in
-    let* y = eval rhs env in
-
-    match (x, y) with
-    | (RNum a, RNum b) -> Ok (RNum (a -. b))
-    | _ -> 
-      Error (EvaluationError (sprintf "Cannot subtract these expressions: %s and %s" (string_of_rval x) (string_of_rval y)))
-  )
-
-  | List [Symbol "*"; lhs; rhs] -> (
-    let* x = eval lhs env in
-    let* y = eval rhs env in
-
-    match (x, y) with
-    | (RNum a, RNum b) -> Ok (RNum (a *. b))
-    | (RString a, RNum b) | (RNum b, RString a) -> Ok (RString (mul_string a b))
-    | _ -> 
-      Error (EvaluationError (sprintf "Cannot multiply these expressions: %s and %s" (string_of_rval x) (string_of_rval y)))
-  )
-
-  | List [Symbol "/"; lhs; rhs] -> (
-    let* x = eval lhs env in
-    let* y = eval rhs env in
-
-    match (x, y) with
-    | (RNum a, RNum b) -> if b = 0.0 
-      then Error (EvaluationError "Division by zero!")
-      else Ok (RNum (a /. b))
-    
-    | _ ->
-      Error (EvaluationError (sprintf "Cannot divide these expressions: %s and %s" (string_of_rval x) (string_of_rval y)))
   )
 
   | List [Symbol "if"; cond; true_body; false_body] -> (
@@ -249,52 +124,6 @@ let rec eval expression env =
       ))
   )
 
-  | List [Symbol "or"; a; b] -> (
-    let* evaluated_a = eval a env in
-    match evaluated_a with
-    | RBool x -> (
-      match x with
-      | true -> Ok (RBool true)
-      | false -> (
-        let* evaluated_b = eval b env in
-        match evaluated_b with
-        | RBool y -> (
-          match y with
-          | true -> Ok (RBool true)
-          | false -> Ok (RBool false)
-        )
-
-        | _ -> 
-          Error (EvaluationError (sprintf "Cannot apply logical-or on non-bool expression: %s" (string_of_rval evaluated_b)))
-      )
-    )
-
-    | _ -> 
-      Error (EvaluationError (sprintf "Cannot apply logical-or on non-bool expression: %s" (string_of_rval evaluated_a)))
-  )
-
-  | List [Symbol "and"; a; b] -> (
-    let* evaluated_a = eval a env in
-    match evaluated_a with
-    | RBool x -> (
-      match x with
-      | false -> Ok (RBool false)
-      | true -> (
-        let* evaluated_b = eval b env in
-        match evaluated_b with
-        | RBool y -> (
-          match y with
-          | true -> Ok (RBool true)
-          | false -> Ok (RBool false)
-        )
-
-        | _ -> Error (EvaluationError (sprintf "Cannot apply logical-and on non-bool expression: %s" (string_of_rval evaluated_b)))
-      )
-    )
-
-    | _ -> Error (EvaluationError (sprintf "Cannot apply logical-and on non-bool expression: %s" (string_of_rval evaluated_a)))
-  )
-
   | List [Symbol "unless"; cond; true_body; false_body] -> (
     let* evaluated_cond = eval cond env in
     match evaluated_cond with
@@ -308,216 +137,6 @@ let rec eval expression env =
       Error (EvaluationError (
         sprintf "Condition of unless-construct does not evaluate to a bool: %s" (string_of_rval evaluated_cond)
       ))
-  )
-
-  | List [Symbol "isunit"; a] -> (
-    match eval a env with
-    | Ok RUnit -> Ok (RBool true)
-    | _ -> Ok (RBool false)
-  )
-
-  | List [Symbol "isnum"; a] -> (
-    match eval a env with
-    | Ok RNum _ -> Ok (RBool true)
-    | _ -> Ok (RBool false)
-  )
-
-  | List [Symbol "islist"; a] -> (
-    match eval a env with
-    | Ok RList _ -> Ok (RBool true)
-    | _ -> Ok (RBool false)
-  )
-
-  | List [Symbol "isfun"; a] -> (
-    match eval a env with
-    | Ok RLambda _ -> Ok (RBool true)
-    | _ -> Ok (RBool false)
-  )
-
-  | List [Symbol "isstr"; a] -> (
-    match eval a env with
-    | Ok RString _ -> Ok (RBool true)
-    | _ -> Ok (RBool false)
-  )
-
-  | List [Symbol "isbool"; a] -> (
-    match eval a env with
-    | Ok RBool _ -> Ok (RBool true)
-    | _ -> Ok (RBool false)
-  )
-
-  | List [Symbol "cons"; e; l] -> (
-    let* x = eval l env in 
-    let* y = eval e env in
-
-    match x with
-    | RList i -> Ok (RList (List.cons y i))
-    | _ -> 
-      Error (EvaluationError (sprintf "Cannot perform cons-operation on non-list expression: %s" (string_of_rval x)))
-  )
-
-  | List [Symbol "="; a; b] -> (
-    let* x = eval a env in 
-    let* y = eval b env in
-
-    match (x, y) with
-    | (RNum i, RNum j) -> Ok (RBool (i = j))
-    | (RString i, RString j) -> Ok (RBool (i = j))
-    | (RBool i, RBool j) -> Ok (RBool (i = j))
-    | (RList i, RList j) -> Ok (RBool (i = j))
-    | _ -> Ok (RBool false)
-  )
-
-  | List [Symbol "=="; a; b] -> if a = b 
-    then Ok (RBool true) 
-    else Ok (RBool false)
-
-  | List [Symbol ">"; a; b] -> (
-    let* x = eval a env in 
-    let* y = eval b env in
-
-    match (x, y) with
-    | (RNum i, RNum j) -> Ok (RBool (i > j))
-    | _ -> 
-      Error (EvaluationError (
-        sprintf "Cannot perform greater-comparison on non-numerical types: %s and %s" 
-        (string_of_rval x) (string_of_rval y)
-      ))
-  )
-
-  | List [Symbol ">="; a; b] -> (
-    let* x = eval a env in 
-    let* y = eval b env in
-
-    match (x, y) with
-    | (RNum i, RNum j) -> Ok (RBool (i > j || i = j))
-    | _ -> 
-      Error (EvaluationError (sprintf "Cannot perform greater/equal-comparison on non-numerical types: %s and %s" 
-      (string_of_rval x) (string_of_rval y)))
-  )
-
-  | List [Symbol "<"; a; b] -> (
-    let* x = eval a env in 
-    let* y = eval b env in
-
-    match (x, y) with
-    | (RNum i, RNum j) -> Ok (RBool (i < j))
-    | _ -> 
-      Error (EvaluationError (
-        sprintf "Cannot perform smaller-comparison on non-numerical types: %s and %s" 
-        (string_of_rval x) (string_of_rval y)
-      ))
-  )
-
-  | List [Symbol "<="; a; b] -> (
-    let* x = eval a env in 
-    let* y = eval b env in
-
-    match (x, y) with
-    | (RNum i, RNum j) -> Ok (RBool (i < j || i = j))
-    | _ -> 
-      Error (EvaluationError (
-        sprintf "Cannot perform smaller/equal-comparison on non-numerical types: %s and %s" 
-        (string_of_rval x) (string_of_rval y)
-      ))
-  )
-
-  | List [Symbol "append"; a; b] -> (
-    let* x = eval a env in 
-    let* y = eval b env in
-
-    match (x, y) with
-    | (RList i, RList j) -> Ok (RList (List.append i j))
-    | _ -> Error (EvaluationError 
-      (sprintf "Cannot perform list-append on these expressions: %s and %s" (string_of_rval x) (string_of_rval y)
-    ))
-  )
-
-  | List (Symbol "print" :: params) -> (
-    let rec aux acc left =
-      match left with
-      | [] -> Ok (List.rev acc)
-      | x :: xs -> (
-        let* evaluated = eval x env in
-        aux (evaluated :: acc) xs
-      )
-    in let* exprs = aux [] params in
-    exprs |> List.iter (fun e -> (
-      print_string (string_of_rval e)
-    ));
-
-    Ok RUnit
-  )
-
-  | List (Symbol "println" :: params) -> (
-    let rec aux acc left =
-      match left with
-      | [] -> Ok (List.rev acc)
-      | x :: xs -> (
-        let* evaluated = eval x env in
-        aux (evaluated :: acc) xs
-      )
-    in let* exprs = aux [] params in
-    exprs |> List.iter (fun e -> (
-      print_string (string_of_rval e)
-    ));
-
-    print_endline "";
-    Ok RUnit
-  )
-
-  | List [Symbol "readln"] -> Ok (RString (read_line ()))
-  | List [Symbol "readln"; prompt] -> (
-    let* evaluated_prompt = eval prompt env in
-    match evaluated_prompt with
-    | RString s -> (
-      print_string s;
-      Out_channel.flush stdout;
-      Ok (RString (read_line ()))
-    )
-
-    | _ -> Error (EvaluationError "The prompt you supplied is a non-string expression")
-  )
-
-  | List [Symbol "to_string"; e] -> (
-    let* evaluated = eval e env in
-    Ok (RString (string_of_rval evaluated))
-  )
-
-  | List [Symbol "string_to_num"; e] -> (
-    let* x = eval e env in
-    match x with
-    | RString s -> (
-      match float_of_string_opt s with
-      | Some i -> Ok (RNum i)
-      | _ -> Error (EvaluationError (sprintf "Cannot parse this string to a number: %s" s))
-    )
-
-    | _ -> Error (EvaluationError (sprintf "Cannot convert this expression to a number: %s" (string_of_rval x)))
-  )
-
-  | List [Symbol "list"; List elems] -> (
-    let rec aux acc left =
-      match left with
-      | [] -> Ok (List.rev acc)
-      | x :: xs -> (
-        let* evaluated = eval x env in
-        aux (evaluated :: acc) xs 
-      )
-    in let* exprs = aux [] elems in 
-    Ok (RList exprs)
-  )
-
-  | List [Symbol "print_env"] -> (
-    let rec aux e idx =
-      printf "Scope %d:\n" idx;
-      e.bindings |>
-      Hashtbl.iter (fun k v -> printf "\t%s: %s\n" k (string_of_rval v));
-
-      match e.parent with
-      | None -> Ok RUnit
-      | Some p -> aux p (idx + 1)
-    in aux env 0 
   )
   
   | List (fun_expr :: fun_params) -> (
@@ -548,10 +167,574 @@ let rec eval expression env =
       )
     )
 
+    | RNativeFun callback -> callback fun_params env
     | _ -> Error (EvaluationError (sprintf "Attempt to invoke non-lambda: %s" (string_of_expr fun_expr)))
   )
 
   | List [] -> Ok (RList [])
+
+let err name expected actual = 
+  Error (EvaluationError (
+    sprintf "Native function %s is given the wrong amount of arguments. Expected: %d. Got: %d" 
+    name expected actual
+  ))
+
+let native_funs = [
+  ("+", (fun params env -> (
+    match params with
+    | [lhs; rhs] -> (
+      let* x = eval lhs env in
+      let* y = eval rhs env in
+
+      match (x, y) with
+      | (RNum a, RNum b) -> Ok (RNum (a +. b))
+      | (RString a, RString b) -> Ok (RString (a ^ b))
+      | _ -> 
+        Error (EvaluationError (sprintf "Cannot add these expressions: %s and %s" (string_of_rval x) (string_of_rval y)))
+    )
+
+    | _ -> err "+" 2 (List.length params)
+  )));
+
+  ("-", (fun params env -> (
+    match params with
+    | [lhs; rhs] -> (
+      let* x = eval lhs env in
+      let* y = eval rhs env in
+
+      match (x, y) with
+      | (RNum a, RNum b) -> Ok (RNum (a -. b))
+      | _ -> 
+        Error (EvaluationError (sprintf "Cannot subtract these expressions: %s and %s" (string_of_rval x) (string_of_rval y)))
+    )
+
+    | _ -> err "-" 2 (List.length params)
+  )));
+
+  ("*", (fun params env -> (
+    match params with
+    | [lhs; rhs] -> (
+      let* x = eval lhs env in
+      let* y = eval rhs env in
+
+      match (x, y) with
+      | (RNum a, RNum b) -> Ok (RNum (a *. b))
+      | (RNum a, RString b) | (RString b, RNum a) -> Ok (RString (mul_string b a))
+
+      | _ -> 
+        Error (EvaluationError (sprintf "Cannot multiply these expressions: %s and %s" (string_of_rval x) (string_of_rval y)))
+    )
+
+    | _ -> err "*" 2 (List.length params)
+  )));
+
+  ("/", (fun params env -> (
+    match params with
+    | [lhs; rhs] -> (
+      let* x = eval lhs env in
+      let* y = eval rhs env in
+
+      match (x, y) with
+      | (RNum a, RNum b) -> Ok (RNum (a /. b))
+      | _ -> 
+        Error (EvaluationError (sprintf "Cannot divide these expressions: %s and %s" (string_of_rval x) (string_of_rval y)))
+    )
+
+    | _ -> err "/" 2 (List.length params)
+  )));
+
+  ("=", (fun params env -> (
+    match params with
+    | [a; b] -> (
+      let* x = eval a env in 
+      let* y = eval b env in
+
+      match (x, y) with
+      | (RNum i, RNum j) -> Ok (RBool (i = j))
+      | (RString i, RString j) -> Ok (RBool (i = j))
+      | (RBool i, RBool j) -> Ok (RBool (i = j))
+      | (RList i, RList j) -> Ok (RBool (i = j))
+      | _ -> Ok (RBool false)
+    )
+
+    | _ -> err "=" 2 (List.length params)
+  )));
+
+  (">", (fun params env -> (
+    match params with
+    | [a; b] -> (
+      let* x = eval a env in 
+      let* y = eval b env in
+
+      match (x, y) with
+      | (RNum i, RNum j) -> Ok (RBool (i > j))
+      | _ -> 
+        Error (EvaluationError (
+          sprintf "Cannot perform greater-comparison on non-numerical types: %s and %s" 
+          (string_of_rval x) (string_of_rval y)
+        ))
+    )
+
+    | _ -> err ">" 2 (List.length params)
+  )));
+
+  (">=", (fun params env -> (
+    match params with
+    | [a; b] -> (
+      let* x = eval a env in 
+      let* y = eval b env in
+
+      match (x, y) with
+      | (RNum i, RNum j) -> Ok (RBool (i > j || i = j))
+      | _ -> 
+        Error (EvaluationError (sprintf "Cannot perform greater/equal-comparison on non-numerical types: %s and %s" 
+        (string_of_rval x) (string_of_rval y)))
+    )
+
+    | _ -> err ">=" 2 (List.length params)
+  )));
+
+  ("<", (fun params env -> (
+    match params with
+    | [a; b] -> (
+      let* x = eval a env in 
+      let* y = eval b env in
+
+      match (x, y) with
+      | (RNum i, RNum j) -> Ok (RBool (i < j))
+      | _ -> 
+        Error (EvaluationError (
+          sprintf "Cannot perform smaller-comparison on non-numerical types: %s and %s" 
+          (string_of_rval x) (string_of_rval y)
+        ))
+    )
+
+    | _ -> err "<" 2 (List.length params)
+  )));
+
+  ("<=", (fun params env -> (
+    match params with
+    | [a; b] -> (
+      let* x = eval a env in 
+      let* y = eval b env in
+
+      match (x, y) with
+      | (RNum i, RNum j) -> Ok (RBool (i < j || i = j))
+      | _ -> 
+        Error (EvaluationError (
+          sprintf "Cannot perform smaller/equal-comparison on non-numerical types: %s and %s" 
+          (string_of_rval x) (string_of_rval y)
+        ))
+    )
+
+    | _ -> err "<=" 2 (List.length params)
+  )));
+
+  ("or", (fun params env -> (
+    match params with
+    | [a; b] -> (
+      let* evaluated_a = eval a env in
+      match evaluated_a with
+      | RBool x -> (
+        match x with
+        | true -> Ok (RBool true)
+        | false -> (
+          let* evaluated_b = eval b env in
+          match evaluated_b with
+          | RBool y -> (
+            match y with
+            | true -> Ok (RBool true)
+            | false -> Ok (RBool false)
+          )
+
+          | _ -> 
+            Error (EvaluationError (sprintf "Cannot apply logical-or on non-bool expression: %s" (string_of_rval evaluated_b)))
+        )
+      )
+
+      | _ -> 
+        Error (EvaluationError (sprintf "Cannot apply logical-or on non-bool expression: %s" (string_of_rval evaluated_a)))
+      )
+
+    | _ -> err "or" 2 (List.length params)
+  )));
+
+  ("and", (fun params env -> (
+    match params with
+    | [a; b] -> (
+      let* evaluated_a = eval a env in
+      match evaluated_a with
+      | RBool x -> (
+        match x with
+        | false -> Ok (RBool false)
+        | true -> (
+          let* evaluated_b = eval b env in
+          match evaluated_b with
+          | RBool y -> (
+            match y with
+            | true -> Ok (RBool true)
+            | false -> Ok (RBool false)
+          )
+
+          | _ -> Error (EvaluationError (
+            sprintf "Cannot apply logical-and on non-bool expression: %s" (string_of_rval evaluated_b)
+          ))
+        )
+      )
+
+      | _ -> Error (EvaluationError (
+        sprintf "Cannot apply logical-and on non-bool expression: %s" (string_of_rval evaluated_a)
+      ))
+    )
+
+    | _ -> err "and" 2 (List.length params)
+  )));
+
+  ("exec", (fun params env -> (
+    match params with
+    | [e] -> (
+      let* evaluated = eval e env in
+      match evaluated with
+      | RString s -> Ok (RNum (float_of_int (Sys.command s)))
+      | _ -> Error (EvaluationError ("Cannot execute non-string expression: " ^ (string_of_rval evaluated)))
+    )
+
+    | _ -> err "exec" 1 (List.length params)
+  )));
+
+  ("list", (fun params env -> (
+    match params with
+    | [List e] -> (
+      let rec aux acc left =
+      match left with
+      | [] -> Ok (List.rev acc)
+      | x :: xs -> (
+        let* evaluated = eval x env in
+        aux (evaluated :: acc) xs 
+      )
+      in let* exprs = aux [] e in 
+      Ok (RList exprs)
+    )
+
+    | _ -> err "list" 1 (List.length params)
+  )));
+
+  ("append", (fun params env -> (
+    match params with
+    | [a; b] -> (
+      let* x = eval a env in 
+      let* y = eval b env in
+
+      match (x, y) with
+      | (RList i, RList j) -> Ok (RList (List.append i j))
+      | _ -> Error (EvaluationError 
+        (sprintf "Cannot perform list-append on these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
+      )
+    )
+
+    | _ -> err "append" 2 (List.length params)
+  )));
+
+  ("car", (fun params env -> (
+    match params with
+    | [e] -> (
+      let* l = eval e env in
+      match l with
+      | RList content -> (
+        match content with
+        | head :: _ -> Ok head
+        | _ -> Ok RUnit
+      )
+
+      | _ -> 
+        Error (EvaluationError (sprintf "Cannot perform head-operation on non-list expression: %s" (string_of_rval l)))
+    )
+
+    | _ -> err "head" 1 (List.length params)
+  )));
+
+  ("cdr", (fun params env -> (
+    match params with
+    | [e] -> (
+      let* l = eval e env in
+      match l with
+      | RList content -> (
+        match content with
+        | _ :: tail -> Ok (RList tail)
+        | _ -> Ok RUnit
+      )
+
+      | _ -> Error (EvaluationError (sprintf "Cannot perform tail-operation on non-list expression: %s" (string_of_rval l)))
+    )
+
+    | _ -> err "tail" 1 (List.length params)
+  )));
+
+  ("cons", (fun params env -> (
+    match params with
+    | [e; l] -> (
+      let* x = eval l env in 
+      let* y = eval e env in
+
+      match x with
+      | RList i -> Ok (RList (List.cons y i))
+      | _ -> 
+        Error (EvaluationError (sprintf "Cannot perform cons-operation on non-list expression: %s" (string_of_rval x)))
+    )
+
+    | _ -> err "cons" 2 (List.length params)
+  )));
+
+  ("print", (fun params env -> (
+    let rec aux acc left =
+      match left with
+      | [] -> Ok (List.rev acc)
+      | x :: xs -> (
+        let* evaluated = eval x env in
+        aux (evaluated :: acc) xs
+      )
+    in let* exprs = aux [] params in
+    exprs |> List.iter (fun e -> (
+      print_string (string_of_rval e)
+    ));
+
+    Ok RUnit
+  )));
+
+  ("println", (fun params env -> (
+    let rec aux acc left =
+      match left with
+      | [] -> Ok (List.rev acc)
+      | x :: xs -> (
+        let* evaluated = eval x env in
+        aux (evaluated :: acc) xs
+      )
+    in let* exprs = aux [] params in
+    exprs |> List.iter (fun e -> (
+      print_string (string_of_rval e)
+    ));
+
+    print_endline "";
+    Ok RUnit
+  )));
+
+  ("readln", (fun params env -> (
+    match params with
+    | [e] -> (
+      let* evaluated_prompt = eval e env in
+      match evaluated_prompt with
+      | RString s -> (
+        print_string s;
+        Out_channel.flush stdout;
+        Ok (RString (read_line ()))
+      )
+
+      | _ -> Error (EvaluationError "The prompt you supplied is a non-string expression")
+    )
+
+    | _ -> err "readln" 1 (List.length params)
+  )));
+
+  ("chars", (fun params env -> (
+    match params with 
+    | [e] -> (
+      let* str_val = eval e env in
+      match str_val with
+      | RString s -> (
+        let chars = Helpers.chars_of_string s in
+        Ok (RList (List.map (fun c -> RString (String.make 1 c)) chars))
+      )
+
+      | _ -> 
+        Error (EvaluationError (sprintf "Cannot apply chars-operation on non-string expression: %s" (string_of_rval str_val)))
+    )
+
+    | _ -> err "chars" 1 (List.length params)
+  )));
+
+  ("lower", (fun params env -> (
+    match params with
+    | [e] -> (
+      let* str_val = eval e env in
+      match str_val with
+      | RString s -> Ok (RString (String.lowercase_ascii s))
+      | _ -> 
+        Error (EvaluationError (sprintf "Cannot apply lower-operation on non-string expression: %s" (string_of_rval str_val)))
+    )
+
+    | _ -> err "lower" 1 (List.length params)
+  )));
+
+  ("trim", (fun params env -> (
+    match params with
+    | [e] -> (
+      let* str_val = eval e env in
+      match str_val with
+      | RString s -> Ok (RString (String.trim s))
+      | _ -> 
+        Error (EvaluationError (sprintf "Cannot apply trim-operation on non-string expression: %s" (string_of_rval str_val)))
+    )
+
+    | _ -> err "trim" 1 (List.length params)
+  )));
+
+  ("splitws", (fun params env -> (
+    match params with
+    | [e] -> (
+      let* str_val = eval e env in
+      match str_val with
+      | RString s -> 
+        let parts = List.filter (fun s -> String.trim s <> "") (String.split_on_char ' ' s) 
+        in Ok (RList (List.map (fun x -> RString x) parts))
+
+      | _ -> 
+        Error (EvaluationError (sprintf "Cannot apply splitws-operation on non-string expression: %s" (string_of_rval str_val)))
+    )
+
+    | _ -> err "splitws" 1 (List.length params)
+  )));
+
+  ("exit", (fun params env -> (
+    match params with
+    | [e] -> (
+      let* exit_code = eval e env in
+      match exit_code with
+      | RNum x -> exit (int_of_float x)
+      | _ -> Error (EvaluationError "Cannot exit with non-number exit code")
+    )
+
+    | _ -> err "exit" 1 (List.length params)
+  )));
+
+  ("bye", (fun _ _ -> exit 0));
+
+  ("to_string", (fun params env -> (
+    match params with
+    | [e] -> (
+      let* evaluated = eval e env in
+      Ok (RString (string_of_rval evaluated))
+    )
+
+    | _ -> err "to_string" 1 (List.length params)
+  )));
+
+  ("string_to_num", (fun params env -> (
+    match params with
+    | [e] -> (
+      let* x = eval e env in
+      match x with
+      | RString s -> (
+        match float_of_string_opt s with
+        | Some i -> Ok (RNum i)
+        | _ -> Error (EvaluationError (sprintf "Cannot parse this string to a number: %s" s))
+      )
+
+      | _ -> Error (EvaluationError (sprintf "Cannot convert this expression to a number: %s" (string_of_rval x)))
+    )
+
+    | _ -> err "string_to_num" 1 (List.length params)
+  )));
+
+  ("isunit", (fun params env -> (
+    match params with
+    | [e] -> (
+      match eval e env with
+      | Ok RUnit -> Ok (RBool true)
+      | _ -> Ok (RBool false)
+    )
+
+    | _ -> err "isunit" 1 (List.length params)
+  )));
+
+  ("isstr", (fun params env -> (
+    match params with
+    | [e] -> (
+      match eval e env with
+      | Ok RString _ -> Ok (RBool true)
+      | _ -> Ok (RBool false)
+    )
+
+    | _ -> err "isstring" 1 (List.length params)
+  )));
+
+  ("isnum", (fun params env -> (
+    match params with
+    | [e] -> (
+      match eval e env with
+      | Ok RNum _ -> Ok (RBool true)
+      | _ -> Ok (RBool false)
+    )
+
+    | _ -> err "isnum" 1 (List.length params)
+  )));
+
+  ("islist", (fun params env -> (
+    match params with
+    | [e] -> (
+      match eval e env with
+      | Ok RList _ -> Ok (RBool true)
+      | _ -> Ok (RBool false)
+    )
+
+    | _ -> err "islist" 1 (List.length params)
+  )));
+
+  ("isfun", (fun params env -> (
+    match params with
+    | [e] -> (
+      match eval e env with
+      | Ok RLambda _ -> Ok (RBool true)
+      | _ -> Ok (RBool false)
+    )
+
+    | _ -> err "islambda" 1 (List.length params)
+  )));
+
+  ("isnative", (fun params env -> (
+    match params with
+    | [e] -> (
+      match eval e env with
+      | Ok RNativeFun _ -> Ok (RBool true)
+      | _ -> Ok (RBool false)
+    )
+
+    | _ -> err "isnative" 1 (List.length params)
+  )));
+
+  ("isbool", (fun params env -> (
+    match params with
+    | [e] -> (
+      match eval e env with
+      | Ok RBool _ -> Ok (RBool true)
+      | _ -> Ok (RBool false)
+    )
+
+    | _ -> err "isbool" 1 (List.length params)
+  )));
+
+  ("print_env", (fun params env -> (
+    match params with
+    | [] -> (
+      let rec aux e idx =
+        printf "Scope %d:\n" idx;
+        e.bindings |>
+        Hashtbl.iter (fun k v -> printf "\t%s: %s\n" k (string_of_rval v));
+
+        match e.parent with
+        | None -> Ok RUnit
+        | Some p -> aux p (idx + 1)
+      in aux env 0 
+    )
+
+    | _ -> err "print_env" 0 (List.length params)
+  )));
+]
+
+let register_std_natives env =
+  native_funs |>
+  List.iter (fun (name, callback) ->
+    register_native env name callback |> ignore
+  )
 
 let do_string source_code env =
   let* tokens = tokenize source_code in
@@ -574,6 +757,7 @@ let do_file file_path =
   In_channel.close file_channel;
   let env = new_env None in
   load_stdlib env;
+  register_std_natives env;
 
   let* tokens = tokenize source_code in
   let* (root_expr, _) = parse tokens in
@@ -588,4 +772,3 @@ let do_file file_path =
       | _ -> aux env xs
     )
   in aux env ast
-
