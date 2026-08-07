@@ -5,6 +5,53 @@ open Runtime_value
 open Helpers
 open Expr
 
+let err t e = 
+  Error (EvaluationError (
+    sprintf "This expression was expected to evaluate to a %s, but it didn't: %s" t (string_of_expr e)
+  )) 
+
+let get_string expr env =
+  let* evaluated = eval expr env in
+  match evaluated with
+  | RString s -> Ok s
+  | _ -> err "string" expr
+
+let get_number expr env =
+  let* evaluated = eval expr env in
+  match evaluated with
+  | RNum x -> Ok x
+  | _ -> err "number" expr
+
+let get_list expr env =
+  let* evaluated = eval expr env in
+  match evaluated with
+  | RList l -> Ok l
+  | _ -> err "list" expr
+
+let get_lambda expr env =
+  let* evaluated = eval expr env in
+  match evaluated with
+  | RString s -> Ok s
+  | _ -> err "lambda" expr
+
+let get_record expr env =
+  let* evaluated = eval expr env in
+  match evaluated with
+  | RRecord r -> Ok r
+  | _ -> err "record" expr
+
+let get_native expr env =
+  let* evaluated = eval expr env in
+  match evaluated with
+  | RNativeFun r -> Ok r
+  | _ -> err "native function" expr
+
+let get_unit expr env =
+  let* evaluated = eval expr env in
+  match evaluated with
+  | RUnit -> Ok RUnit
+  | _ -> err "unit" expr
+
 let err name expected actual = 
   Error (EvaluationError (
     sprintf "Native function %s was given bad syntax. Args expected: %d. Got: %d"
@@ -807,5 +854,38 @@ let native_funs = [
     )
 
     | _ -> err "include" 1 (List.length params)
+  )));
+
+  ("read_file", (fun params env -> (
+    match params with
+    | [path_expr] -> (
+      let* evaluated = get_string path_expr env in
+      try
+        let chan = In_channel.open_text evaluated in
+        let content = In_channel.input_all chan in
+        In_channel.close chan;
+        Ok (RString content)
+      with Sys_error e -> Error (EvaluationError (sprintf "Error while reading '%s': %s" evaluated e))
+    )
+
+    | _ -> err "cat" 1 (List.length params)
+  )));
+
+  ("write_file", (fun params env -> (
+    match params with
+    | [path_expr; content_expr] -> (
+      let* path = get_string path_expr env in
+      let* content = get_string content_expr env in
+
+      try
+        let chan = Out_channel.open_text path in
+        Out_channel.output_string chan content;
+        Out_channel.close chan;
+        Ok RUnit
+      with Sys_error e ->
+        Error (EvaluationError (sprintf "Couldn't write to '%s': %s" path e))
+    )
+
+    | _ -> err "write" 1 (List.length params)
   )));
 ]
