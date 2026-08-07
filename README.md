@@ -40,8 +40,8 @@ You can also try this tiny program that greets you!
 ```
 
 To exit:
-```bash
-(exit)
+```lisp
+(bye)
 ```
 
 ### Examples

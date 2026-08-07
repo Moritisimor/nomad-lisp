@@ -175,6 +175,65 @@ let native_funs = [
     | _ -> err "unless" 3 (List.length params)
   )));
 
+  ("record", (fun params env -> (
+    let acc = Hashtbl.create 0 in
+    let rec aux left = 
+      match left with
+      | [] -> Ok (RRecord acc)
+      | x :: xs -> (
+        match x with
+        | List [Symbol field_name; field_expr] -> (
+          let* evaluated_field = eval field_expr env in
+          Hashtbl.add acc field_name evaluated_field;
+          aux xs
+        )
+
+        | _ -> Error (EvaluationError "Record field has bad syntax")
+      )
+
+    in aux params
+  )));
+
+  (".", (fun params env -> (
+    match params with
+    | [record_expr; Symbol field_name] -> (
+      let* evaluated_record = eval record_expr env in 
+      match evaluated_record with
+      | RRecord r -> (
+        match Hashtbl.find_opt r field_name with
+        | Some f -> Ok f
+        | None -> 
+          Error (EvaluationError ("Attempt to access non-existant field of record: " ^ field_name))
+      )
+
+      | _ -> Error (EvaluationError ("Attempt to access field of non-record expression: " ^ (string_of_rval evaluated_record)))
+    )
+
+    | _ -> err "." 2 (List.length params)
+  )));
+
+  ("record_mut", (fun params env -> (
+    match params with
+    | [record_expr; Symbol field_name; new_expr] -> (
+      let* evaluated_record = eval record_expr env in
+      match evaluated_record with
+      | RRecord r -> (
+        match Hashtbl.find_opt r field_name with
+        | None -> Error (EvaluationError ("Cannot mutate non-existant field: " ^ field_name))
+        | Some _ -> (
+          let* evaluated_expr = eval new_expr env in
+          Hashtbl.replace r field_name evaluated_expr;
+
+          Ok RUnit
+        )
+      )
+
+      | _ -> Error (EvaluationError ("Attempt to mutate field of non-record expression: " ^ (string_of_rval evaluated_record)))
+    )
+
+    | _ -> err "record_mut" 3 (List.length params)
+  )));
+
   ("+", (fun params env -> (
     match params with
     | [lhs; rhs] -> (
