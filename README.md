@@ -1,8 +1,6 @@
 # nomad-lisp
 Modern, readable, dynamically typed, interpreted LISP dialect written in OCaml.
 
-[Website](https://moritisimor.github.io/nomad-lisp-website/)
-
 ## What is this project about?
 This is my very own LISP Dialect.
 
