@@ -1,5 +1,6 @@
 open Nomad_lisp.Eval
 open Nomad_lisp.Runtime_value
+open Nomad_lisp.Expr
 open Nomad_lisp
 
 let () =
@@ -21,7 +22,7 @@ let () =
   )
 
   | [|_; "-e"; expr|] | [|_; "--eval"; expr|] -> (
-    match Eval.do_string expr Interpreter.new_interpreter with
+    match Interpreter.do_string expr Interpreter.new_interpreter with
     | Ok evaluated -> print_endline (Runtime_value.string_of_rval evaluated)
     | Error e -> (
       Nomad_err.print_err e;
@@ -31,12 +32,12 @@ let () =
 
   | [|_|] | [|_; "--repl"|] | [|_; "-r"|] -> (
     let interpreter = Interpreter.new_interpreter in
-
+    
     let rec repl () =
       print_string "Nomad λ ";
       Out_channel.flush stdout;
       let input = read_line () in
-      (match do_string input interpreter with
+      (match Interpreter.do_string input interpreter with
       | Ok evaluated -> Printf.printf "Evaluates to: %s\n" (string_of_rval evaluated)
       | Error e -> Nomad_err.print_err e);
       repl ()
@@ -45,7 +46,7 @@ let () =
 
   | [|_; input_file|] -> (
     try
-      match Eval.do_file input_file with
+      match Interpreter.do_file input_file with
       | Ok _ -> ()
       | Error e -> Nomad_err.print_err e; exit 1
     with Sys_error e -> (

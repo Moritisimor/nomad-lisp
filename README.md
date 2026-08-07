@@ -62,8 +62,8 @@ To exit:
 #### Currying and Function Composition in action
 ```lisp
 (let add 
-  (λ (x) # λ is optional, simply typing 'lambda' is just as valid.
-    (λ (y)
+  (lambda (x)
+    (lambda (y)
       (+ x y))))
 
 (let add10 (add 10))
@@ -102,7 +102,7 @@ To exit:
         
     (aux (car l) (cdr l) 0)))
 
-(let my_list (list (1 2 3 4 5 6 7 8 9 10)))
+(let my_list (list 1 2 3 4 5 6 7 8 9 10))
 (print_list my_list)
 ```
 

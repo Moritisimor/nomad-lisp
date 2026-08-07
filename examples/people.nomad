@@ -1,5 +1,5 @@
 #!/usr/bin/env nomad
-(letfun make_person (name age job) (list (name age job)))
+(letfun make_person (name age job) (list name age job))
 (letfun get_name (person) (nth person 0))
 (letfun get_age (person) (nth person 1))
 (letfun get_job (person) (nth person 2))

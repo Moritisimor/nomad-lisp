@@ -9,6 +9,7 @@ type runtime_value =
   | RString of string
   | RBool of bool
   | RList of runtime_value list
+  | RRecord of (string, runtime_value) Hashtbl.t
   | RUnit 
 
 and env = {
@@ -35,6 +36,7 @@ let rec string_of_rval = function
     in aux "(" x
   )
 
+  | RRecord _ -> "<RECORD>"
   | RUnit -> "<UNIT>"
 
 let new_env parent = {
