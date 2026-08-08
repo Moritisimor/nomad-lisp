@@ -32,13 +32,6 @@ let () =
 
   | [_] | [_; "--repl"] | [_; "-r"] -> (
     let interpreter = Interpreter.new_interpreter in
-    register_native interpreter "hello" (fun params env -> (
-      print_endline "Hello from OCaml!";
-      Ok RUnit
-    )) |> ignore;
-
-    do_string "(hello)" interpreter |> ignore;
-    
     let rec repl () =
       print_string "Nomad λ ";
       Out_channel.flush stdout;

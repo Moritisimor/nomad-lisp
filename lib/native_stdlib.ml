@@ -763,7 +763,7 @@ let native_funs = [
       with Sys_error e -> Error (EvaluationError (sprintf "Error while reading '%s': %s" evaluated e))
     )
 
-    | _ -> err "cat" 1 (List.length params)
+    | _ -> err "read_file" 1 (List.length params)
   )));
 
   ("write_file", (fun params env -> (
@@ -781,6 +781,109 @@ let native_funs = [
         Error (EvaluationError (sprintf "Couldn't write to '%s': %s" path e))
     )
 
-    | _ -> err "write" 1 (List.length params)
+    | _ -> err "write_file" 1 (List.length params)
+  )));
+
+  ("remove_file", (fun params env -> (
+    match params with
+    | [path_expr] -> (
+      let* path = get_string path_expr env in
+      try
+        Sys.remove path;
+        Ok RUnit
+      with Sys_error e ->
+        Error (EvaluationError (sprintf "Couldn't remove file '%s': %s" path e))
+    )
+
+    | _ -> err "remove_file" 1 (List.length params)
+  )));
+
+  ("read_dir", (fun params env -> (
+    match params with
+    | [path_expr] -> (
+      let* path = get_string path_expr env in
+      let rec aux acc left =
+        match left with
+        | [] -> List.rev acc
+        | x :: xs -> aux (RString x :: acc) xs
+      in try
+        Ok (RList (aux [] (Array.to_list (Sys.readdir path))))
+      with Sys_error e ->
+        Error (EvaluationError (sprintf "Couldn't read directory '%s': %s" path e))
+    )
+
+    | _ -> err "read_dir" 1 (List.length params)
+  )));
+
+  ("mkdir", (fun params env -> (
+    match params with
+    | [path_expr] -> (
+      let* path = get_string path_expr env in
+      try
+        Sys.mkdir path 0755;
+        Ok RUnit
+      with Sys_error e ->
+        Error (EvaluationError (sprintf "Couldn't create directory '%s': %s" path e))
+    )
+
+    | _ -> err "mkdir" 1 (List.length params)
+  )));
+
+  ("remove_dir", (fun params env -> (
+    match params with
+    | [path_expr] -> (
+      let* path = get_string path_expr env in
+      try
+        Sys.rmdir path;
+        Ok RUnit
+      with Sys_error e ->
+        Error (EvaluationError (sprintf "Couldn't remove directory: '%s': %s" path e))
+    )
+
+    | _ -> err "remove_dir" 1 (List.length params)
+  )));
+
+  ("chdir", (fun params env -> (
+    match params with
+    | [path_expr] -> (
+      let* path = get_string path_expr env in
+      try 
+        Sys.chdir path;
+        Ok RUnit
+      with Sys_error e ->
+        Error (EvaluationError (sprintf "Error while changing working directory to '%s': %s" path e))
+    )
+
+    | _ -> err "chdir" 1 (List.length params)
+  )));
+
+  ("cwd", (fun params env -> (
+    match params with
+    | [] -> Ok (RString (Sys.getcwd ()))
+    | _ -> err "cwd" 0 (List.length params)
+  )));
+
+  ("get_env", (fun params env -> (
+    match params with
+    | [var_expr] -> (
+      let* x = get_string var_expr env in
+      match Sys.getenv_opt x with
+      | Some v -> Ok (RString v)
+      | None -> Error (EvaluationError (sprintf "Environment variable '%s' not found" x))
+    )
+
+    | _ -> err "get_env" 1 (List.length params)
+  )));
+
+  ("get_env_unit", (fun params env -> (
+    match params with
+    | [var_expr] -> (
+      let* x = get_string var_expr env in
+      match Sys.getenv_opt x with
+      | Some v -> Ok (RString v)
+      | None -> Ok RUnit
+    )
+
+    | _ -> err "get_env" 1 (List.length params)
   )));
 ]
