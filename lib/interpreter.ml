@@ -20,6 +20,13 @@ let load_stdlib env =
 (* Just a small convenience function for creating an environment and binding the stdlib as well. *)
 let new_interpreter = 
   let e = new_env None in
+  let rec aux acc left =
+    match left with
+    | [] -> List.rev acc
+    | x :: xs -> aux (RString x :: acc) xs
+  in let args = aux [] (List.tl (Array.to_list Sys.argv)) in
+
+  set_binding "args" (RList args) e |> ignore;
   register_std_natives e;
   load_stdlib e;
   e

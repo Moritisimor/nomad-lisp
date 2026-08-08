@@ -4,8 +4,8 @@ open Nomad_lisp.Expr
 open Nomad_lisp
 
 let () =
-  match Sys.argv with
-  | [|_; "--help"|] | [|_ ; "-h"|] -> (
+  match Array.to_list Sys.argv with
+  | [_; "--help"] | [_ ; "-h"] -> (
     print_endline " \\\\";
     print_endline "  \\\\";
     print_endline " //\\\\";
@@ -21,7 +21,7 @@ let () =
     print_endline "https://github.com/Moritisimor/nomad-lisp";
   )
 
-  | [|_; "-e"; expr|] | [|_; "--eval"; expr|] -> (
+  | [_; "-e"; expr] | [_; "--eval"; expr] -> (
     match Interpreter.do_string expr Interpreter.new_interpreter with
     | Ok evaluated -> print_endline (Runtime_value.string_of_rval evaluated)
     | Error e -> (
@@ -30,8 +30,14 @@ let () =
     )
   )
 
-  | [|_|] | [|_; "--repl"|] | [|_; "-r"|] -> (
+  | [_] | [_; "--repl"] | [_; "-r"] -> (
     let interpreter = Interpreter.new_interpreter in
+    register_native interpreter "hello" (fun params env -> (
+      print_endline "Hello from OCaml!";
+      Ok RUnit
+    )) |> ignore;
+
+    do_string "(hello)" interpreter |> ignore;
     
     let rec repl () =
       print_string "Nomad λ ";
@@ -44,7 +50,7 @@ let () =
     in repl ()
   )
 
-  | [|_; input_file|] -> (
+  | _ :: input_file :: _ -> (
     try
       match Interpreter.do_file input_file with
       | Ok _ -> ()
