@@ -21,6 +21,12 @@ let get_number expr env =
   match evaluated with
   | RNum x -> Ok x
   | _ -> err "number" expr
+  
+let get_bool expr env =
+  let* evaluated = eval expr env in
+  match evaluated with
+  | RBool b -> Ok b
+  | _ -> err "bool" expr
 
 let get_list expr env =
   let* evaluated = eval expr env in
@@ -300,13 +306,9 @@ let native_funs = [
   ("-", (fun params env -> (
     match params with
     | [lhs; rhs] -> (
-      let* x = eval lhs env in
-      let* y = eval rhs env in
-
-      match (x, y) with
-      | (RNum a, RNum b) -> Ok (RNum (a -. b))
-      | _ -> 
-        Error (EvaluationError (sprintf "Cannot subtract these expressions: %s and %s" (string_of_rval x) (string_of_rval y)))
+      let* x = get_number lhs env in
+      let* y = get_number rhs env in
+      Ok (RNum (x -. y))
     )
 
     | _ -> err "-" 2 (List.length params)
@@ -332,13 +334,11 @@ let native_funs = [
   ("/", (fun params env -> (
     match params with
     | [lhs; rhs] -> (
-      let* x = eval lhs env in
-      let* y = eval rhs env in
-
-      match (x, y) with
-      | (RNum a, RNum b) -> Ok (RNum (a /. b))
-      | _ -> 
-        Error (EvaluationError (sprintf "Cannot divide these expressions: %s and %s" (string_of_rval x) (string_of_rval y)))
+      let* x = get_number lhs env in
+      let* y = get_number rhs env in
+      match y = 0. with
+      | false -> Ok (RNum (x /. y))
+      | true -> Error (EvaluationError "Attempt to divide by 0")
     )
 
     | _ -> err "/" 2 (List.length params)
@@ -347,13 +347,9 @@ let native_funs = [
   ("mod", (fun params env -> (
     match params with
     | [lhs; rhs] -> (
-      let* x = eval lhs env in
-      let* y = eval rhs env in
-
-      match (x, y) with
-      | (RNum a, RNum b) -> Ok (RNum (mod_float a b))
-      | _ -> 
-        Error (EvaluationError (sprintf "Cannot apply modulo on these expressions: %s and %s" (string_of_rval x) (string_of_rval y)))
+      let* x = get_number lhs env in
+      let* y = get_number rhs env in
+      Ok (RNum (mod_float x y))
     )
 
     | _ -> err "mod" 2 (List.length params)
@@ -379,16 +375,9 @@ let native_funs = [
   (">", (fun params env -> (
     match params with
     | [a; b] -> (
-      let* x = eval a env in 
-      let* y = eval b env in
-
-      match (x, y) with
-      | (RNum i, RNum j) -> Ok (RBool (i > j))
-      | _ -> 
-        Error (EvaluationError (
-          sprintf "Cannot perform greater-comparison on non-numerical types: %s and %s" 
-          (string_of_rval x) (string_of_rval y)
-        ))
+      let* x = get_number a env in 
+      let* y = get_number b env in
+      Ok (RBool (x > y))
     )
 
     | _ -> err ">" 2 (List.length params)
@@ -399,12 +388,7 @@ let native_funs = [
     | [a; b] -> (
       let* x = eval a env in 
       let* y = eval b env in
-
-      match (x, y) with
-      | (RNum i, RNum j) -> Ok (RBool (i > j || i = j))
-      | _ -> 
-        Error (EvaluationError (sprintf "Cannot perform greater/equal-comparison on non-numerical types: %s and %s" 
-        (string_of_rval x) (string_of_rval y)))
+      Ok (RBool (x > y || x = y))
     )
 
     | _ -> err ">=" 2 (List.length params)
@@ -413,16 +397,9 @@ let native_funs = [
   ("<", (fun params env -> (
     match params with
     | [a; b] -> (
-      let* x = eval a env in 
-      let* y = eval b env in
-
-      match (x, y) with
-      | (RNum i, RNum j) -> Ok (RBool (i < j))
-      | _ -> 
-        Error (EvaluationError (
-          sprintf "Cannot perform smaller-comparison on non-numerical types: %s and %s" 
-          (string_of_rval x) (string_of_rval y)
-        ))
+      let* x = get_number a env in 
+      let* y = get_number b env in
+      Ok (RBool (x < y))
     )
 
     | _ -> err "<" 2 (List.length params)
@@ -433,14 +410,7 @@ let native_funs = [
     | [a; b] -> (
       let* x = eval a env in 
       let* y = eval b env in
-
-      match (x, y) with
-      | (RNum i, RNum j) -> Ok (RBool (i < j || i = j))
-      | _ -> 
-        Error (EvaluationError (
-          sprintf "Cannot perform smaller/equal-comparison on non-numerical types: %s and %s" 
-          (string_of_rval x) (string_of_rval y)
-        ))
+      Ok (RBool (x < y || x = y))
     )
 
     | _ -> err "<=" 2 (List.length params)
@@ -449,28 +419,16 @@ let native_funs = [
   ("or", (fun params env -> (
     match params with
     | [a; b] -> (
-      let* evaluated_a = eval a env in
+      let* evaluated_a = get_bool a env in
       match evaluated_a with
-      | RBool x -> (
-        match x with
+      | true -> Ok (RBool true)
+      | false -> (
+        let* evaluated_b = get_bool b env in
+        match evaluated_b with
         | true -> Ok (RBool true)
-        | false -> (
-          let* evaluated_b = eval b env in
-          match evaluated_b with
-          | RBool y -> (
-            match y with
-            | true -> Ok (RBool true)
-            | false -> Ok (RBool false)
-          )
-
-          | _ -> 
-            Error (EvaluationError (sprintf "Cannot apply logical-or on non-bool expression: %s" (string_of_rval evaluated_b)))
-        )
+        | false -> Ok (RBool false)
       )
-
-      | _ -> 
-        Error (EvaluationError (sprintf "Cannot apply logical-or on non-bool expression: %s" (string_of_rval evaluated_a)))
-      )
+    )
 
     | _ -> err "or" 2 (List.length params)
   )));
@@ -478,29 +436,15 @@ let native_funs = [
   ("and", (fun params env -> (
     match params with
     | [a; b] -> (
-      let* evaluated_a = eval a env in
+      let* evaluated_a = get_bool a env in
       match evaluated_a with
-      | RBool x -> (
-        match x with
+      | false -> Ok (RBool false)
+      | true -> (
+        let* evaluated_b = get_bool b env in
+        match evaluated_b with
+        | true -> Ok (RBool true)
         | false -> Ok (RBool false)
-        | true -> (
-          let* evaluated_b = eval b env in
-          match evaluated_b with
-          | RBool y -> (
-            match y with
-            | true -> Ok (RBool true)
-            | false -> Ok (RBool false)
-          )
-
-          | _ -> Error (EvaluationError (
-            sprintf "Cannot apply logical-and on non-bool expression: %s" (string_of_rval evaluated_b)
-          ))
-        )
       )
-
-      | _ -> Error (EvaluationError (
-        sprintf "Cannot apply logical-and on non-bool expression: %s" (string_of_rval evaluated_a)
-      ))
     )
 
     | _ -> err "and" 2 (List.length params)
@@ -509,10 +453,8 @@ let native_funs = [
   ("exec", (fun params env -> (
     match params with
     | [e] -> (
-      let* evaluated = eval e env in
-      match evaluated with
-      | RString s -> Ok (RNum (float_of_int (Sys.command s)))
-      | _ -> Error (EvaluationError ("Cannot execute non-string expression: " ^ (string_of_rval evaluated)))
+      let* evaluated = get_string e env in
+      Ok (RNum (float_of_int (Sys.command evaluated)))
     )
 
     | _ -> err "exec" 1 (List.length params)
@@ -528,20 +470,14 @@ let native_funs = [
     )
     in let* exprs = aux [] params in 
     Ok (RList exprs)
-    )
-  ));
+  )));
 
   ("append", (fun params env -> (
     match params with
     | [a; b] -> (
-      let* x = eval a env in 
-      let* y = eval b env in
-
-      match (x, y) with
-      | (RList i, RList j) -> Ok (RList (List.append i j))
-      | _ -> Error (EvaluationError 
-        (sprintf "Cannot perform list-append on these expressions: %s and %s" (string_of_rval x) (string_of_rval y))
-      )
+      let* x = get_list a env in 
+      let* y = get_list b env in
+      Ok (RList (List.append x y))
     )
 
     | _ -> err "append" 2 (List.length params)
@@ -550,16 +486,10 @@ let native_funs = [
   ("car", (fun params env -> (
     match params with
     | [e] -> (
-      let* l = eval e env in
+      let* l = get_list e env in
       match l with
-      | RList content -> (
-        match content with
-        | head :: _ -> Ok head
-        | _ -> Ok RUnit
-      )
-
-      | _ -> 
-        Error (EvaluationError (sprintf "Cannot perform head-operation on non-list expression: %s" (string_of_rval l)))
+      | head :: _ -> Ok head
+      | _ -> Ok RUnit
     )
 
     | _ -> err "car" 1 (List.length params)
@@ -568,16 +498,11 @@ let native_funs = [
   ("cdr", (fun params env -> (
     match params with
     | [e] -> (
-      let* l = eval e env in
-      match l with
-      | RList content -> (
-        match content with
+      let* l = get_list e env in
+        match l with
         | _ :: tail -> Ok (RList tail)
         | _ -> Ok RUnit
       )
-
-      | _ -> Error (EvaluationError (sprintf "Cannot perform tail-operation on non-list expression: %s" (string_of_rval l)))
-    )
 
     | _ -> err "cdr" 1 (List.length params)
   )));
@@ -585,13 +510,9 @@ let native_funs = [
   ("cons", (fun params env -> (
     match params with
     | [e; l] -> (
-      let* x = eval l env in 
+      let* x = get_list l env in 
       let* y = eval e env in
-
-      match x with
-      | RList i -> Ok (RList (List.cons y i))
-      | _ -> 
-        Error (EvaluationError (sprintf "Cannot perform cons-operation on non-list expression: %s" (string_of_rval x)))
+      Ok (RList (List.cons y x))
     )
 
     | _ -> err "cons" 2 (List.length params)
@@ -633,15 +554,10 @@ let native_funs = [
   ("readln", (fun params env -> (
     match params with
     | [e] -> (
-      let* evaluated_prompt = eval e env in
-      match evaluated_prompt with
-      | RString s -> (
-        print_string s;
-        Out_channel.flush stdout;
-        Ok (RString (read_line ()))
-      )
-
-      | _ -> Error (EvaluationError "The prompt you supplied is a non-string expression")
+      let* evaluated_prompt = get_string e env in
+      print_string evaluated_prompt;
+      Out_channel.flush stdout;
+      Ok (RString (read_line ()))
     )
 
     | _ -> err "readln" 1 (List.length params)
@@ -650,15 +566,9 @@ let native_funs = [
   ("chars", (fun params env -> (
     match params with 
     | [e] -> (
-      let* str_val = eval e env in
-      match str_val with
-      | RString s -> (
-        let chars = Helpers.chars_of_string s in
-        Ok (RList (List.map (fun c -> RString (String.make 1 c)) chars))
-      )
-
-      | _ -> 
-        Error (EvaluationError (sprintf "Cannot apply chars-operation on non-string expression: %s" (string_of_rval str_val)))
+      let* str_val = get_string e env in
+      let chars = Helpers.chars_of_string str_val in
+      Ok (RList (List.map (fun c -> RString (String.make 1 c)) chars))
     )
 
     | _ -> err "chars" 1 (List.length params)
@@ -667,11 +577,8 @@ let native_funs = [
   ("lower", (fun params env -> (
     match params with
     | [e] -> (
-      let* str_val = eval e env in
-      match str_val with
-      | RString s -> Ok (RString (String.lowercase_ascii s))
-      | _ -> 
-        Error (EvaluationError (sprintf "Cannot apply lower-operation on non-string expression: %s" (string_of_rval str_val)))
+      let* str_val = get_string e env in
+      Ok (RString (String.lowercase_ascii str_val))
     )
 
     | _ -> err "lower" 1 (List.length params)
@@ -693,14 +600,9 @@ let native_funs = [
   ("splitws", (fun params env -> (
     match params with
     | [e] -> (
-      let* str_val = eval e env in
-      match str_val with
-      | RString s -> 
-        let parts = List.filter (fun s -> String.trim s <> "") (String.split_on_char ' ' s) 
-        in Ok (RList (List.map (fun x -> RString x) parts))
-
-      | _ -> 
-        Error (EvaluationError (sprintf "Cannot apply splitws-operation on non-string expression: %s" (string_of_rval str_val)))
+      let* str_val = get_string e env in
+      let parts = List.filter (fun s -> String.trim s <> "") (String.split_on_char ' ' str_val) 
+      in Ok (RList (List.map (fun x -> RString x) parts))
     )
 
     | _ -> err "splitws" 1 (List.length params)
@@ -709,10 +611,8 @@ let native_funs = [
   ("exit", (fun params env -> (
     match params with
     | [e] -> (
-      let* exit_code = eval e env in
-      match exit_code with
-      | RNum x -> exit (int_of_float x)
-      | _ -> Error (EvaluationError "Cannot exit with non-number exit code")
+      let* exit_code = get_number e env in
+      exit (int_of_float exit_code)
     )
 
     | _ -> err "exit" 1 (List.length params)
@@ -733,15 +633,10 @@ let native_funs = [
   ("string_to_num", (fun params env -> (
     match params with
     | [e] -> (
-      let* x = eval e env in
-      match x with
-      | RString s -> (
-        match float_of_string_opt s with
-        | Some i -> Ok (RNum i)
-        | _ -> Error (EvaluationError (sprintf "Cannot parse this string to a number: %s" s))
-      )
-
-      | _ -> Error (EvaluationError (sprintf "Cannot convert this expression to a number: %s" (string_of_rval x)))
+      let* x = get_string e env in
+      match float_of_string_opt x with
+      | Some i -> Ok (RNum i)
+      | _ -> Error (EvaluationError (sprintf "Cannot parse this string to a number: %s" x))
     )
 
     | _ -> err "string_to_num" 1 (List.length params)
