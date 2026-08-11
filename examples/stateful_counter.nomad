@@ -6,19 +6,19 @@
       (do
         (mut x (+ x 1))
         x))
-        
+
     (letfun decr ()
       (do
         (mut x (- x 1))
         x))
-        
-    (list incr decr)))
 
-# List-destructuring would make this even better but oh well
-# Maybe in a future update?
+    (record
+      (incr incr) 
+      (decr decr))))
+
 (let funs (make_counter))
-(let incr (nth funs 0))
-(let decr (nth funs 1))
+(let incr (. funs incr))
+(let decr (. funs decr))
 
 (letfun input_loop ()
   (do
@@ -26,7 +26,7 @@
       ("incr" (println "Counter is now at: " (incr)))
       ("decr" (println "Counter is now at: " (decr)))
       (_ (println "Unknown command! Only enter incr or decr!")))
-      
+
     (input_loop)))
 
 (println "Ctrl + C to exit!")
