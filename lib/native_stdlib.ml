@@ -172,10 +172,46 @@ let native_funs = [
           | Symbol s -> aux (s :: acc) xs
           | _ -> Error (EvaluationError "Non-Symbol in parameter list")
         )
-      in let* param_list = aux [] params in Ok (RLambda (param_list, body, env))
+      in let* param_list = aux [] params in 
+      Ok (RLambda (param_list, body, env))
     )
 
     | _ -> err "lambda" 2 (List.length params)
+  )));
+
+  ("scoped", (fun params env -> (
+    match params with
+    | [List binding_pairs; body] -> (
+      let rec aux acc left = 
+        match left with
+        | [] -> Ok acc
+        | x :: xs -> (
+          match x with
+          | List [Symbol s; binding_expr] -> (
+            let* evaluated = eval binding_expr env in
+            aux ((s, evaluated) :: acc) xs
+          )
+
+          | _ -> Error (EvaluationError "Bad Syntax! The binding list is in the wrong form! (Expected '(name value)')")
+        )
+      in
+
+      let* pairs = aux [] binding_pairs in
+      let this_env = new_env (Some env) in
+      let rec aux left =
+        match left with
+        | [] -> Ok ()
+        | (binding_name, binding_value) :: xs -> (
+          let* _ = set_binding binding_name binding_value this_env in
+          aux xs
+        )
+      in let* _ = aux pairs in
+
+      let* evaluated = eval body this_env in
+      Ok evaluated
+    )
+
+    | _ -> err "scoped" 2 (List.length params)
   )));
 
   ("do", (fun params env -> (
