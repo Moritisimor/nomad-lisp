@@ -61,7 +61,7 @@ let stdlib_src = [
       (letfun aux (acc h t i)
         (if (isunit t)
           (rev acc)
-          (aux (cons (f h i) acc) (car t) (cdr t) (+ i 1))))
+          (aux (cons (f h i) acc) (car t) (cdr t) (inc i))))
           
       (aux () (car l) (cdr l) 0)))
   ";
@@ -126,7 +126,7 @@ let stdlib_src = [
             unit
             (do 
               (f h i)
-              (aux (car t) (cdr t) (+ i 1))))))
+              (aux (car t) (cdr t) (inc i))))))
           
       (aux (car l) (cdr l) 0)))
   ";
@@ -152,8 +152,21 @@ let stdlib_src = [
           unit
           (if (= i 0)
             h
-            (aux (car t) (cdr t) (- i 1)))))
+            (aux (car t) (cdr t) (dec i)))))
             
       (aux (car l) (cdr l) idx)))
+  ";
+
+  "
+  (letfun range (start end list)
+    (do
+      (letfun aux (acc h t i)
+        (if (isunit t)
+          (rev acc)
+          (if (and (>= i start) (<= i end))
+            (aux (cons h acc) (car t) (cdr t) (inc i))
+            (aux acc (car t) (cdr t) (inc i)))))
+        
+      (aux () (car list) (cdr list) 0)))
   ";
 ]

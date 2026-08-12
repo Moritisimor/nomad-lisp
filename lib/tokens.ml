@@ -26,11 +26,7 @@ let scan_numlit char_stream =
   let rec aux acc left =
     match left with
     | [] -> Error (TokenizerError (sprintf "Number literal was never ended (Got %s)" (string_of_chars acc)))
-    | ')' :: xs 
-      | '(' :: xs 
-      | ' ' :: xs 
-      | '\t' :: xs 
-      | '\n' :: xs -> (
+    | (')' | '(' | ' ' | '\t' | '\n') :: xs -> (
         let num_string = string_of_chars acc in
         match float_of_string_opt num_string with
         | Some x -> Ok ((NUMLIT x), left)
@@ -65,11 +61,7 @@ let scan_symbol char_stream =
   let rec aux acc left =
     match left with
     | [] -> Error (TokenizerError (sprintf "Symbol was never ended (Got %s)" (string_of_chars acc)))
-    | ')' :: xs 
-      | '(' :: xs 
-      | ' ' :: xs 
-      | '\t' :: xs 
-      | '\n' :: xs -> (
+    | (')' | '(' | ' ' | '\t' | '\n') :: xs -> (
         let symbol_string = string_of_chars acc in
         Ok ((SYMBOL symbol_string), left)
       )
