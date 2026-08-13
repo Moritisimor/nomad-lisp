@@ -43,6 +43,29 @@ To exit:
 ```
 
 ### Examples
+#### Fibonacci
+```lisp
+(letfun fib (n)
+  (switch n
+    (0 0)
+    (1 1)
+    (_ (+ (fib (dec n)) (fib (- n 2))))))
+
+(let x 20)
+(println (fib x))
+```
+
+#### Factorial
+```lisp
+(letfun fact (n)
+  (switch n
+    (0 1)
+    (_ (* n (fact (dec n))))))
+
+(let x 10)
+(println (fact x))
+```
+
 #### A recursive counter function
 ```lisp
 (letfun count (start end)
@@ -104,7 +127,7 @@ To exit:
 (print_list my_list)
 ```
 
-#### Switch expression
+#### Switch expressions
 ```lisp
 (let scrutinee 10)
 (println 
