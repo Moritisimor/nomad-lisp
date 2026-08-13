@@ -64,7 +64,7 @@ let scan_symbol char_stream =
     | (')' | '(' | ' ' | '\t' | '\n') :: xs -> (
         let symbol_string = string_of_chars acc in
         Ok ((SYMBOL symbol_string), left)
-      )
+    )
     
     | x :: xs -> aux (x :: acc) xs
   in aux [] char_stream
@@ -108,7 +108,7 @@ let tokenize text =
         match scan_numlit left with
         | Ok (parsed_numlit, rest) -> aux (parsed_numlit :: acc) rest
         | Error e -> Error e
-      )
+    )
 
     | '"' :: xs -> (
       match scan_stringlit xs with

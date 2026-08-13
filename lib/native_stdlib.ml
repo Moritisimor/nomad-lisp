@@ -37,7 +37,7 @@ let get_list expr env =
 let get_lambda expr env =
   let* evaluated = eval expr env in
   match evaluated with
-  | RString s -> Ok s
+  | RLambda (params, body, captured) -> Ok (params, body, captured)
   | _ -> err "lambda" expr
 
 let get_record expr env =
@@ -552,6 +552,18 @@ let native_funs = [
     )
 
     | _ -> err "cons" 2 (List.length params)
+  )));
+
+  ("sprint", (fun params env -> (
+    let rec aux acc left =
+      match left with
+      | [] -> Ok acc
+      | x :: xs -> (
+        let* evaluated = eval x env in
+        aux (acc ^ (string_of_rval evaluated)) xs
+      )
+    in let* str = aux "" params in
+    Ok (RString str)
   )));
 
   ("print", (fun params env -> (
