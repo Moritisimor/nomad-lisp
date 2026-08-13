@@ -30,11 +30,29 @@
 		("x" "-..-")
 		("y" "-.--")
 		("z" "--..")
+		("1" ".----")
+		("2" "..---")
+		("3" "...--")
+		("4" "....-")
+		("5" ".....")
+		("6" "-....")
+		("7" "--...")
+		("8" "---..")
+		("9" "----.")
+		("0" "-----")
+		("." ".-.-.-")
+		("?" "..--..")
+		(";" "-.-.-")
+		(":" "---...")
+		("/" "-..-.")
+		("+" ".-.-.")
+		("-" "-....-")
+		("=" "-...-")
 		(_ (throw (sprint "Cannot convert '" char "' to morse code")))))
 
 (letfun text_to_morse (text) 
 	(foldl (lambda (acc char)
-		(sprint acc " " (char_to_morse char)))
+		(sprint acc (char_to_morse char) " "))
 	"" (chars text)))
 
 (if (= args 1)
@@ -42,8 +60,17 @@
 		(println "Usage: morse.nomad <words...>")
 		(exit 1))
 		
-	(foreachi (lambda (m i)
-		(if (= i 0)
-			(print (text_to_morse m))
-			(print " / " (text_to_morse m))))
-	(cdr args)))
+	(try 
+		(do
+			(let converted 
+				(mapi (lambda (m i)
+					(if (= i 0)
+						(text_to_morse m)
+						(sprint "/ " (text_to_morse m))))
+			(cdr args)))
+			
+			(println (foldl + "" converted)))
+			
+		(do
+			(println "Sorry, but one or more of the characters that you entered could not be converted to morse code.")
+			(exit 1))))
