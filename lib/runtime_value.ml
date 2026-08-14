@@ -4,6 +4,7 @@ open Nomad_err
 
 type runtime_value =
   | RNativeFun of (expr list -> env -> (runtime_value, error) result)
+  | RMacro of string list * expr list
   | RLambda of string list * expr * env
   | RNum of float
   | RString of string
@@ -20,6 +21,7 @@ and env = {
 let rec string_of_rval = function
   | RNativeFun _ -> "<NATIVEFUNCTION>"
   | RLambda _ -> "<FUNCTION>"
+  | RMacro _ -> "<MACRO>"
   | RNum x -> (
     if mod_float x 1. = 0. 
       then sprintf "%d" (int_of_float x)
@@ -66,5 +68,6 @@ let rec mutate_binding key value environ =
     | Some e -> mutate_binding key value e
     | None -> Error (EvaluationError (sprintf "Cannot mutate non-existant binding: %s" key))
   )
+
 let register_native env name func =
   set_binding name (RNativeFun func) env

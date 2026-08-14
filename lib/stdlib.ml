@@ -3,6 +3,9 @@ let stdlib_src = [
   "(letfun inc (i) (+ i 1))";
   "(letfun dec (i) (- i 1))";
 
+  "(letmac unless (cond yes no) if (not cond) yes no)";
+  "(letmac when (cond body) if cond body unit)";
+
   "
   (letfun foldl (f acc l)
     (do

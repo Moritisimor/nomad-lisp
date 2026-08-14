@@ -5,62 +5,63 @@ open Runtime_value
 open Helpers
 open Expr
 
-let err t e = 
+let err t e v = 
   Error (EvaluationError (
-    sprintf "This expression was expected to evaluate to a %s, but it didn't: %s" t (string_of_expr e)
+    sprintf "This expression was expected to evaluate to a %s, but it didn't: %s (%s)" 
+    t (string_of_expr e) (string_of_rval v)
   )) 
 
 let get_string expr env =
   let* evaluated = eval expr env in
   match evaluated with
   | RString s -> Ok s
-  | _ -> err "string" expr
+  | _ -> err "string" expr evaluated
 
 let get_number expr env =
   let* evaluated = eval expr env in
   match evaluated with
   | RNum x -> Ok x
-  | _ -> err "number" expr
+  | _ -> err "number" expr evaluated
   
 let get_bool expr env =
   let* evaluated = eval expr env in
   match evaluated with
   | RBool b -> Ok b
-  | _ -> err "bool" expr
+  | _ -> err "bool" expr evaluated
 
 let get_list expr env =
   let* evaluated = eval expr env in
   match evaluated with
   | RList l -> Ok l
-  | _ -> err "list" expr
+  | _ -> err "list" expr evaluated
 
 let get_lambda expr env =
   let* evaluated = eval expr env in
   match evaluated with
   | RLambda (params, body, captured) -> Ok (params, body, captured)
-  | _ -> err "lambda" expr
+  | _ -> err "lambda" expr evaluated
 
 let get_record expr env =
   let* evaluated = eval expr env in
   match evaluated with
   | RRecord r -> Ok r
-  | _ -> err "record" expr
+  | _ -> err "record" expr evaluated
 
 let get_native expr env =
   let* evaluated = eval expr env in
   match evaluated with
   | RNativeFun r -> Ok r
-  | _ -> err "native function" expr
+  | _ -> err "native function" expr evaluated
 
 let get_unit expr env =
   let* evaluated = eval expr env in
   match evaluated with
   | RUnit -> Ok RUnit
-  | _ -> err "unit" expr
+  | _ -> err "unit" expr evaluated
 
 let err name expected actual = 
   Error (EvaluationError (
-    sprintf "Native function %s was given bad syntax. Args expected: %d. Got: %d"
+    sprintf "Native function %s was given bad syntax. Perhaps it was given the wrong amount of args? Args expected: %d. Got: %d"
     name expected actual
   ))
 
@@ -87,6 +88,27 @@ let native_funs = [
     )
 
     | _ -> err "throw" 1 (List.length params)
+  )));
+
+  ("letmac", (fun params env -> (
+    match params with
+    | Symbol name :: List params :: body -> (
+      let rec aux acc left =
+        match left with
+        | [] -> Ok (List.rev acc)
+        | x :: xs -> (
+          match x with
+          | Symbol s -> aux (s :: acc) xs
+          | _ -> Error (EvaluationError "Non-symbol in parameter list")
+        )
+      in
+
+      let* args = aux [] params in
+      let* _ = set_binding name (RMacro (args, body)) env in
+      Ok RUnit
+    )
+
+    | _ -> err "letmac" 3 (List.length params)
   )));
 
   ("let", (fun params env -> (
@@ -243,25 +265,6 @@ let native_funs = [
     )
 
     | _ -> err "if" 3 (List.length params)
-  )));
-
-  ("unless", (fun params env -> (
-    match params with
-    | [cond; yes; no] -> (
-      let* evaluated_cond = eval cond env in
-      match evaluated_cond with
-      | RBool b -> (
-        match b with
-        | false -> eval yes env
-        | true -> eval no env
-      )
-
-      | _ -> Error (EvaluationError (
-        sprintf "Condition of unless-construct does not evaluate to a bool: %s" (string_of_rval evaluated_cond)
-      ))
-    ) 
-
-    | _ -> err "unless" 3 (List.length params)
   )));
 
   ("record", (fun params env -> (

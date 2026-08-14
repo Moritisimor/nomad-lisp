@@ -20,6 +20,7 @@ let rec eval expression env =
   | List (fun_expr :: fun_params) -> (
     let* fun_binding = eval fun_expr env in
     match fun_binding with
+    | RNativeFun callback -> callback fun_params env
     | RLambda (params, body, captured) -> (
       let (expected_len, actual_len) = (List.length params, List.length fun_params) in
       match expected_len <> actual_len with
@@ -45,8 +46,39 @@ let rec eval expression env =
       )
     )
 
-    | RNativeFun callback -> callback fun_params env
-    | _ -> Error (EvaluationError (sprintf "Attempt to invoke non-lambda: %s" (string_of_expr fun_expr)))
+    | RMacro (params, body) -> (
+      let (expected_len, actual_len) = (List.length params, List.length fun_params) in
+      match expected_len <> actual_len with
+      | true -> Error (EvaluationError (
+        Printf.sprintf "Attempted to invoke macro with wrong amount of params. Expected: %d got: %d"
+        expected_len actual_len
+      ))
+
+      | false -> (
+        let kv_pairs = List.combine params fun_params in
+        let tbl = Hashtbl.create 0 in
+        kv_pairs |> List.iter (fun (k, v) -> Hashtbl.add tbl k v);
+
+        let rec aux acc left =
+          match left with
+          | [] -> List (List.rev acc)
+          | x :: xs -> (
+            match x with
+            | Symbol s -> (
+              match Hashtbl.find_opt tbl s with
+              | Some e -> aux (e :: acc) xs
+              | None -> aux (Symbol s :: acc) xs
+            )
+
+            | List l -> aux (aux [] l :: acc) xs
+            | _ -> aux (x :: acc) xs
+          )
+        in let new_expr = aux [] body in
+        eval new_expr env
+      )
+    )
+
+    | _ -> Error (EvaluationError (sprintf "Attempt to invoke non-function/non-macro: %s" (string_of_expr fun_expr)))
   )
 
   | List [] -> Ok (RList [])
