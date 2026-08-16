@@ -5,6 +5,7 @@ let stdlib_src = [
 
   "(letmac unless (cond yes no) if (not cond) yes no)";
   "(letmac when (cond body) if cond body unit)";
+  "(letmac != (lhs rhs) not (= lhs rhs))";
 
   "
   (letfun foldl (f acc l)

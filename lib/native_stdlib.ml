@@ -759,6 +759,17 @@ let native_funs = [
     | _ -> err "isnative" 1 (List.length params)
   )));
 
+  ("ismac", (fun params env -> (
+    match params with
+    | [e] -> (
+      match eval e env with
+      | Ok RMacro _ -> Ok (RBool true)
+      | _ -> Ok (RBool false)
+    )
+
+    | _ -> err "isnative" 1 (List.length params)
+  )));
+
   ("isbool", (fun params env -> (
     match params with
     | [e] -> (
@@ -768,6 +779,17 @@ let native_funs = [
     )
 
     | _ -> err "isbool" 1 (List.length params)
+  )));
+
+  ("isrecord", (fun params env -> (
+    match params with
+    | [e] -> (
+      match eval e env with
+      | Ok RBool _ -> Ok (RBool true)
+      | _ -> Ok (RBool false)
+    )
+
+    | _ -> err "isrecord" 1 (List.length params)
   )));
 
   ("print_env", (fun params env -> (
