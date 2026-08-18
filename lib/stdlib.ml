@@ -8,6 +8,21 @@ let stdlib_src = [
   "(letmac != (lhs rhs) not (= lhs rhs))";
 
   "
+  (letfun typeof (expr)
+    (switch true
+      ((isstr expr) \"string\")
+      ((isnum expr) \"number\")
+      ((isbool expr) \"bool\")
+      ((islist expr) \"list\")
+      ((isrecord expr) \"record\")
+      ((isfun expr) \"function\")
+      ((isnative expr) \"native\")
+      ((isunit expr) \"unit\")
+      ((ismac expr) \"macro\")
+      (_ \"unknown\")))
+  ";
+
+  "
   (letfun foldl (f acc l)
     (do
       (letfun aux (a h t)

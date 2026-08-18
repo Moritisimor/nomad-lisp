@@ -63,3 +63,34 @@ Checks if an expression is of type `record`
 ```lisp
 (isrecord <expr>)
 ```
+
+## typeof
+Returns the type of an expression as a string
+
+Unknown is a possible type, though it should only appear when I, the developer, have forgotten to implement something
+
+In that case, please post an issue or a pull request
+
+### Signature
+```lisp
+(typeof <expr>)
+```
+
+### Type names
+- string
+- number
+- bool
+- list
+- record
+- unit
+- function
+- native
+- macro
+
+### Example
+```lisp
+(typeof "Hello") # "string"
+(typeof 21) # "number"
+(typeof (1 2 3 4)) # "list"
+(typeof (lambda (x) x)) # "function"
+```
