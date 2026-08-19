@@ -1,4 +1,6 @@
 # nomad-lisp
+![Nomad Lisp Logo](docs/NomadLogo.svg)
+
 Modern, readable, dynamically typed, interpreted LISP dialect written in OCaml.
 
 ## What is this project about?
