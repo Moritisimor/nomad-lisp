@@ -767,7 +767,7 @@ let native_funs = [
       | _ -> Ok (RBool false)
     )
 
-    | _ -> err "isnative" 1 (List.length params)
+    | _ -> err "ismac" 1 (List.length params)
   )));
 
   ("isbool", (fun params env -> (
@@ -785,7 +785,7 @@ let native_funs = [
     match params with
     | [e] -> (
       match eval e env with
-      | Ok RBool _ -> Ok (RBool true)
+      | Ok RRecord _ -> Ok (RBool true)
       | _ -> Ok (RBool false)
     )
 
