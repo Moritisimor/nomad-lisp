@@ -425,8 +425,8 @@ let native_funs = [
   (">=", (fun params env -> (
     match params with
     | [a; b] -> (
-      let* x = eval a env in 
-      let* y = eval b env in
+      let* x = get_number a env in 
+      let* y = get_number b env in
       Ok (RBool (x > y || x = y))
     )
 
@@ -447,8 +447,8 @@ let native_funs = [
   ("<=", (fun params env -> (
     match params with
     | [a; b] -> (
-      let* x = eval a env in 
-      let* y = eval b env in
+      let* x = get_number a env in 
+      let* y = get_number b env in
       Ok (RBool (x < y || x = y))
     )
 
