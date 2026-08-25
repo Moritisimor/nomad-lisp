@@ -91,11 +91,11 @@ let tokenize text =
     | ' ' :: xs | '\t' :: xs | '\n' :: xs -> aux acc xs
 
     (* Bool literals *)
-    | 't' :: 'r' :: 'u' :: 'e' :: xs -> aux (BOOLLIT true :: acc) xs
-    | 'f' :: 'a' :: 'l' :: 's' :: 'e' :: xs -> aux (BOOLLIT false :: acc) xs
+    | 't' :: 'r' :: 'u' :: 'e' :: ('\n' | ')' | '\t' | '(' | ' ') :: xs -> aux (BOOLLIT true :: acc) xs
+    | 'f' :: 'a' :: 'l' :: 's' :: ('\n' | ')' | '\t' | '(' | ' ') ::'e' :: xs -> aux (BOOLLIT false :: acc) xs
 
     (* Unit literals *)
-    | 'u' :: 'n' :: 'i' :: 't' :: xs -> aux (UNITLIT :: acc) xs
+    | 'u' :: 'n' :: 'i' :: 't' :: ('\n' | ')' | '\t' | '(' | ' ') :: xs -> aux (UNITLIT :: acc) xs
 
     (* Comments *)
     | '#' :: xs -> aux acc (skip_to_newline xs)
