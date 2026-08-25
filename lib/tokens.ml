@@ -92,7 +92,7 @@ let tokenize text =
 
     (* Bool literals *)
     | 't' :: 'r' :: 'u' :: 'e' :: ('\n' | ')' | '\t' | '(' | ' ') :: xs -> aux (BOOLLIT true :: acc) xs
-    | 'f' :: 'a' :: 'l' :: 's' :: ('\n' | ')' | '\t' | '(' | ' ') ::'e' :: xs -> aux (BOOLLIT false :: acc) xs
+    | 'f' :: 'a' :: 'l' :: 's' :: 'e':: ('\n' | ')' | '\t' | '(' | ' ') :: xs -> aux (BOOLLIT false :: acc) xs
 
     (* Unit literals *)
     | 'u' :: 'n' :: 'i' :: 't' :: ('\n' | ')' | '\t' | '(' | ' ') :: xs -> aux (UNITLIT :: acc) xs
