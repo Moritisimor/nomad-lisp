@@ -12,6 +12,17 @@ You can find markdown files that serve as documentation [here](https://github.co
 
 You can also find some example programs [here](https://github.com/Moritisimor/nomad-lisp/tree/main/examples).
 
+## Other implementations
+Check out the other implementations!
+
+The nomad implementation in go, designed for embedding within go applications:
+
+[gomad](https://github.com/Moritisimor/gomad)
+
+The nomad implementation in rust by [RobertFlexx](https://github.com/RobertFlexx):
+
+[romad](https://github.com/RobertFlexx/romad)
+
 ## Cloning and building
 ### Prerequisites
 You will need the `dune` build system installed as well as `git`.
