@@ -23,6 +23,10 @@ The nomad implementation in rust by [RobertFlexx](https://github.com/RobertFlexx
 
 [romad](https://github.com/RobertFlexx/romad)
 
+The nomad implementation in gleam for the BEAM by [RobertFlexx](https://github.com/RobertFlexx):
+
+[bomad](https://github.com/RobertFlexx/bomad)
+
 ## Cloning and building
 ### Prerequisites
 You will need the `dune` build system installed as well as `git`.
