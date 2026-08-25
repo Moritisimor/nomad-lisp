@@ -31,6 +31,8 @@ You will need the `dune` build system installed as well as `git`.
 ```bash
 git clone https://github.com/Moritisimor/nomad-lisp
 cd nomad-lisp
+opam install .
+eval $(opam env)
 dune build
 cp _build/default/bin/main.exe nomad
 ```
