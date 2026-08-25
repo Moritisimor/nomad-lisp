@@ -10,6 +10,8 @@ The interpreter is written in OCaml.
 
 You can find markdown files that serve as documentation [here](https://github.com/Moritisimor/nomad-lisp/tree/main/docs).
 
+You can find an informal language reference [here](https://github.com/Moritisimor/nomad-lisp/tree/main/reference).
+
 You can also find some example programs [here](https://github.com/Moritisimor/nomad-lisp/tree/main/examples).
 
 ## Other implementations
