@@ -19,7 +19,9 @@
  (name nomad-lisp)
  (synopsis "Modern, readable LISP Dialect. Interpreter written in OCaml.")
  (description "Modern, readable, dynamically typed, interpreted LISP dialect written in OCaml.")
- (depends ocaml)
+ (depends 
+  (ocaml (>= 5.4.1)) 
+  (linenoise (>= 1.5.1)))
  (tags
   ("interpreter" "lisp")))
 

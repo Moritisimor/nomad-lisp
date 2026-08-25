@@ -33,12 +33,25 @@ let () =
   | [_] | [_; "--repl"] | [_; "-r"] -> (
     let interpreter = Interpreter.new_interpreter in
     let rec repl () =
-      print_string "Nomad λ ";
-      Out_channel.flush stdout;
-      let input = read_line () in
+      let input = 
+        match LNoise.linenoise "Nomad REPL >> " with
+        | Some i -> (
+          LNoise.history_add i |> ignore;
+          i
+        )
+        
+        | None -> (
+          print_endline "Bye!";
+          exit 0
+        )
+      in
+
       (match Interpreter.do_string input interpreter with
-      | Ok evaluated -> Printf.printf "Evaluates to: %s\n" (string_of_rval evaluated)
-      | Error e -> Nomad_err.print_err e);
+      | Error e -> Nomad_err.print_err e
+      | Ok evaluated -> (
+        Printf.printf "Evaluates to: %s\n" (string_of_rval evaluated);
+        Out_channel.flush stdout
+      ));
       repl ()
     in repl ()
   )

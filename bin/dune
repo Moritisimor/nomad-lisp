@@ -1,4 +1,4 @@
 (executable
  (public_name nomad-lisp)
  (name main)
- (libraries nomad_lisp))
+ (libraries nomad_lisp linenoise))
