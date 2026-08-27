@@ -29,6 +29,10 @@ The nomad implementation in gleam for the BEAM by [RobertFlexx](https://github.c
 
 [bomad](https://github.com/RobertFlexx/bomad)
 
+If you want a port of nomad to the full DotNet 10.0 ecosystem, check out **this**.
+
+[DotMad](https://github.com/RobertFlexx/DotMad)
+
 ## Cloning and building
 ### Prerequisites
 You will need OCaml 5.4.1 or newer, opam, dune, and git.
