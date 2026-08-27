@@ -1,5 +1,4 @@
 open Nomad_err
-open Helpers
 open Printf
 
 type token =
@@ -12,123 +11,116 @@ type token =
   | SYMBOL of string
   | EOF
 
-let rec string_of_token = function
+let string_of_token = function
   | LPAREN -> "LPAREN"
   | RPAREN -> "RPAREN"
+  | NUMLIT x when Float.is_nan x -> "NUMLIT(nan)"
   | NUMLIT x -> sprintf "NUMLIT(%.2f)" x
   | BOOLLIT x -> sprintf "BOOLLIT(%b)" x
   | STRINGLIT x -> sprintf "STRINGLIT(\"%s\")" x
   | UNITLIT -> "UNITLITERAL"
   | SYMBOL x -> sprintf "SYMBOL('%s')" x
-  | EOF -> sprintf "EOF"
+  | EOF -> "EOF"
 
-let scan_numlit char_stream =
-  let rec aux acc left =
-    match left with
-    | [] -> Error (TokenizerError (sprintf "Number literal was never ended (Got %s)" (string_of_chars acc)))
-    | (')' | '(' | ' ' | '\t' | '\n') :: xs -> (
-        let num_string = string_of_chars acc in
-        match float_of_string_opt num_string with
-        | Some x -> Ok ((NUMLIT x), left)
-        | None -> Error (TokenizerError (Printf.sprintf "Could not parse %s to a number" num_string))
-      )
+let is_delim = function
+  | '(' | ')' | ' ' | '\t' | '\n' | '\r' -> true
+  | _ -> false
 
-    | x :: xs -> aux (x :: acc) xs
-  in aux [] char_stream
+let keyword_at source i word =
+  let n = String.length word in
+  let finish = i + n in
+  finish <= String.length source
+  && String.sub source i n = word
+  && (finish = String.length source || is_delim source.[finish])
 
-let scan_stringlit char_stream =
-  let rec aux acc left =
-    match left with
-    | [] -> Error (TokenizerError (sprintf "String literal was never ended (Got \"%s)" (string_of_chars acc)))
-    | '"' :: xs -> Ok (STRINGLIT (string_of_chars acc), xs)
-    | '\\' :: 'n' :: xs -> aux ('\n' :: acc) xs
-    | '\\' :: 't' :: xs -> aux ('\t' :: acc) xs
-    | '\\' :: 'r' :: xs -> aux ('\r' :: acc) xs
-    | '\\' :: 'b' :: xs -> aux ('\b' :: acc) xs
-    | '\\' :: '"' :: xs -> aux ('"' :: acc) xs
-    | x :: xs -> aux (x :: acc) xs
-  in aux [] char_stream
+let scan_until_delim source i =
+  let j = ref i in
+  while !j < String.length source && not (is_delim source.[!j]) do
+    incr j
+  done;
+  !j
 
-let skip_to_newline char_stream =
-  let rec aux left =
-    match left with
-    | [] -> []
-    | '\n' :: xs -> xs
-    | _ :: xs -> aux xs
-  in aux char_stream
-
-let scan_symbol char_stream =
-  let rec aux acc left =
-    match left with
-    | [] -> Error (TokenizerError (sprintf "Symbol was never ended (Got %s)" (string_of_chars acc)))
-    | (')' | '(' | ' ' | '\t' | '\n') :: xs -> (
-        let symbol_string = string_of_chars acc in
-        Ok ((SYMBOL symbol_string), left)
-    )
-    
-    | x :: xs -> aux (x :: acc) xs
-  in aux [] char_stream
-
-let count_parens token_stream =
-  let rec aux accl accr left =
-    match left with
-    | [] -> (accl, accr)
-    | x :: xs -> (
-      match x with
-      | RPAREN -> aux accl (accr + 1) xs
-      | LPAREN -> aux (accl + 1) accr xs
-      | _ -> aux accl accr xs
-    )
-  in aux 0 0 token_stream
-
-let tokenize text =
-  let chars = chars_of_string text in
-
-  let rec aux acc left =
-    match left with
-    | [] -> Ok (List.rev (EOF :: RPAREN :: acc))
-    (* Whitespace *)
-    | ' ' :: xs | '\t' :: xs | '\n' :: xs -> aux acc xs
-
-    (* Bool literals *)
-    | 't' :: 'r' :: 'u' :: 'e' :: ('\n' | ')' | '\t' | '(' | ' ') :: xs -> aux (BOOLLIT true :: acc) xs
-    | 'f' :: 'a' :: 'l' :: 's' :: 'e':: ('\n' | ')' | '\t' | '(' | ' ') :: xs -> aux (BOOLLIT false :: acc) xs
-
-    (* Unit literals *)
-    | 'u' :: 'n' :: 'i' :: 't' :: ('\n' | ')' | '\t' | '(' | ' ') :: xs -> aux (UNITLIT :: acc) xs
-
-    (* Comments *)
-    | '#' :: xs -> aux acc (skip_to_newline xs)
-
-    | ')' :: xs -> aux (RPAREN :: acc) xs
-    | '(' :: xs -> aux (LPAREN :: acc) xs
-
-    | '-' :: ('0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9') :: xs (* Negative Numbers *)
-    | ('0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9') :: xs -> (
-        match scan_numlit left with
-        | Ok (parsed_numlit, rest) -> aux (parsed_numlit :: acc) rest
-        | Error e -> Error e
-    )
-
-    | '"' :: xs -> (
-      match scan_stringlit xs with
-      | Ok (parsed_stringlit, rest) -> aux (parsed_stringlit :: acc) rest
-      | Error e -> Error e
-    )
-
-    | x :: xs -> (
-      match scan_symbol left with
-      | Ok (parsed_symbol, rest) -> aux (parsed_symbol :: acc) rest
-      | Error e -> Error e
-    )
-  in 
-  match aux [LPAREN] chars with
-  | Ok tokens -> (
-    let (l, r) = count_parens tokens in
-    if l = r 
-      then Ok tokens
-      else if l > r then Error (TokenizerError "Unbalanced parantheses: one or more unclosed left parantheses")
-      else Error (TokenizerError "Unbalanced parantheses: one or more superfluous right parantheses")
-  )
-
-  | Error e -> Error e
+let tokenize source =
+  let len = String.length source in
+  let tokens = ref [LPAREN] in
+  let left = ref 1 in
+  let right = ref 0 in
+  let i = ref 0 in
+  let error = ref None in
+  let add token = tokens := token :: !tokens in
+  while !i < len && Option.is_none !error do
+    match source.[!i] with
+    | ' ' | '\t' | '\n' | '\r' -> incr i
+    | '#' ->
+        while !i < len && source.[!i] <> '\n' do incr i done
+    | '(' ->
+        add LPAREN;
+        incr left;
+        incr i
+    | ')' ->
+        add RPAREN;
+        incr right;
+        incr i
+    | '"' ->
+        let b = Buffer.create 16 in
+        incr i;
+        let closed = ref false in
+        while !i < len && not !closed do
+          match source.[!i] with
+          | '"' ->
+              closed := true;
+              incr i
+          | '\\' when !i + 1 < len ->
+              begin match source.[!i + 1] with
+              | 'n' -> Buffer.add_char b '\n'
+              | 't' -> Buffer.add_char b '\t'
+              | 'r' -> Buffer.add_char b '\r'
+              | 'b' -> Buffer.add_char b '\b'
+              | '"' -> Buffer.add_char b '"'
+              | c -> Buffer.add_char b '\\'; Buffer.add_char b c
+              end;
+              i := !i + 2
+          | '\\' ->
+              Buffer.add_char b '\\';
+              incr i
+          | c ->
+              Buffer.add_char b c;
+              incr i
+        done;
+        if !closed then add (STRINGLIT (Buffer.contents b))
+        else error := Some (TokenizerError (sprintf "String literal was never ended (Got \"%s)" (Buffer.contents b)))
+    | c when (c >= '0' && c <= '9')
+          || (c = '-' && !i + 1 < len
+              && source.[!i + 1] >= '0' && source.[!i + 1] <= '9') ->
+        let finish = scan_until_delim source !i in
+        let text = String.sub source !i (finish - !i) in
+        begin match float_of_string_opt text with
+        | Some value -> add (NUMLIT value)
+        | None -> error := Some (TokenizerError (sprintf "Could not parse %s to a number" text))
+        end;
+        i := finish
+    | _ when keyword_at source !i "true" ->
+        add (BOOLLIT true);
+        i := !i + 4
+    | _ when keyword_at source !i "false" ->
+        add (BOOLLIT false);
+        i := !i + 5
+    | _ when keyword_at source !i "unit" ->
+        add UNITLIT;
+        i := !i + 4
+    | _ ->
+        let finish = scan_until_delim source !i in
+        add (SYMBOL (String.sub source !i (finish - !i)));
+        i := finish
+  done;
+  match !error with
+  | Some e -> Error e
+  | None ->
+      add RPAREN;
+      incr right;
+      let result = List.rev (EOF :: !tokens) in
+      if !left = !right then Ok result
+      else if !left > !right then
+        Error (TokenizerError "Unbalanced parantheses: one or more unclosed left parantheses")
+      else
+        Error (TokenizerError "Unbalanced parantheses: one or more superfluous right parantheses")

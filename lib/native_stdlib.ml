@@ -59,6 +59,12 @@ let get_unit expr env =
   | RUnit -> Ok RUnit
   | _ -> err "unit" expr evaluated
 
+let type_predicate matches expr env =
+  match eval expr env with
+  | Ok value -> Ok (RBool (matches value))
+  | Error (EvaluationError _) -> Ok (RBool false)
+  | Error error -> Error error
+
 let err name expected actual = 
   Error (EvaluationError (
     sprintf "Native function %s was given bad syntax. Perhaps it was given the wrong amount of args? Args expected: %d. Got: %d"
@@ -72,7 +78,8 @@ let native_funs = [
       let evaluated = eval may_fail env in
       match evaluated with
       | Ok e -> Ok e
-      | Error e -> eval on_fail env
+		| Error (EvaluationError _) -> eval on_fail env
+		| Error e -> Error e
     )
 
     | _ -> err "try" 2 (List.length params)
@@ -158,7 +165,7 @@ let native_funs = [
 
   ("switch", (fun params env -> (
     match params with
-    | scrutinee :: cases -> (
+    | scrutinee :: (_ :: _ as cases) -> (
       let* evaluated_scrutinee = eval scrutinee env in
       let rec aux left =
         match left with
@@ -169,7 +176,7 @@ let native_funs = [
             Ok evaluated
           else
             let* evaluated_matcher = eval matcher env in
-            if evaluated_matcher = evaluated_scrutinee then 
+			if equal evaluated_matcher evaluated_scrutinee then
               let* evaluated = eval on_match env in
               Ok evaluated
             else
@@ -268,7 +275,7 @@ let native_funs = [
   )));
 
   ("record", (fun params env -> (
-    let acc = Hashtbl.create 0 in
+    let acc = Hashtbl.create (List.length params) in
     let rec aux left = 
       match left with
       | [] -> Ok (RRecord acc)
@@ -400,12 +407,7 @@ let native_funs = [
       let* x = eval a env in 
       let* y = eval b env in
 
-      match (x, y) with
-      | (RNum i, RNum j) -> Ok (RBool (i = j))
-      | (RString i, RString j) -> Ok (RBool (i = j))
-      | (RBool i, RBool j) -> Ok (RBool (i = j))
-      | (RList i, RList j) -> Ok (RBool (i = j))
-      | _ -> Ok (RBool false)
+		Ok (RBool (equal x y))
     )
 
     | _ -> err "=" 2 (List.length params)
@@ -558,15 +560,16 @@ let native_funs = [
   )));
 
   ("sprint", (fun params env -> (
-    let rec aux acc left =
+    let output = Buffer.create 32 in
+    let rec aux left =
       match left with
-      | [] -> Ok acc
+      | [] -> Ok (RString (Buffer.contents output))
       | x :: xs -> (
         let* evaluated = eval x env in
-        aux (acc ^ (string_of_rval evaluated)) xs
+        Buffer.add_string output (string_of_rval evaluated);
+        aux xs
       )
-    in let* str = aux "" params in
-    Ok (RString str)
+    in aux params
   )));
 
   ("print", (fun params env -> (
@@ -608,7 +611,10 @@ let native_funs = [
       let* evaluated_prompt = get_string e env in
       print_string evaluated_prompt;
       Out_channel.flush stdout;
-      Ok (RString (read_line ()))
+		begin match In_channel.input_line stdin with
+		| Some line -> Ok (RString line)
+		| None -> Error (EvaluationError "readln: reached end of input")
+		end
     )
 
     | _ -> err "readln" 1 (List.length params)
@@ -618,8 +624,8 @@ let native_funs = [
     match params with 
     | [e] -> (
       let* str_val = get_string e env in
-      let chars = Helpers.chars_of_string str_val in
-      Ok (RList (List.map (fun c -> RString (String.make 1 c)) chars))
+		let chars = Helpers.utf8_chars str_val in
+		Ok (RList (List.map (fun c -> RString c) chars))
     )
 
     | _ -> err "chars" 1 (List.length params)
@@ -663,13 +669,20 @@ let native_funs = [
     match params with
     | [e] -> (
       let* exit_code = get_number e env in
-      exit (int_of_float exit_code)
+		let code =
+			match Float.classify_float exit_code with
+			| FP_nan -> 0
+			| _ when exit_code >= Int32.to_float Int32.max_int -> Int32.to_int Int32.max_int
+			| _ when exit_code <= Int32.to_float Int32.min_int -> Int32.to_int Int32.min_int
+			| _ -> int_of_float exit_code
+		in
+		Error (Exit code)
     )
 
     | _ -> err "exit" 1 (List.length params)
   )));
 
-  ("bye", (fun _ _ -> exit 0));
+	("bye", (fun _ _ -> Error (Exit 0)));
 
   ("to_string", (fun params env -> (
     match params with
@@ -695,99 +708,63 @@ let native_funs = [
 
   ("isunit", (fun params env -> (
     match params with
-    | [e] -> (
-      match eval e env with
-      | Ok RUnit -> Ok (RBool true)
-      | _ -> Ok (RBool false)
-    )
+    | [e] -> type_predicate (function RUnit -> true | _ -> false) e env
 
     | _ -> err "isunit" 1 (List.length params)
   )));
 
   ("isstr", (fun params env -> (
     match params with
-    | [e] -> (
-      match eval e env with
-      | Ok RString _ -> Ok (RBool true)
-      | _ -> Ok (RBool false)
-    )
+    | [e] -> type_predicate (function RString _ -> true | _ -> false) e env
 
     | _ -> err "isstring" 1 (List.length params)
   )));
 
   ("isnum", (fun params env -> (
     match params with
-    | [e] -> (
-      match eval e env with
-      | Ok RNum _ -> Ok (RBool true)
-      | _ -> Ok (RBool false)
-    )
+    | [e] -> type_predicate (function RNum _ -> true | _ -> false) e env
 
     | _ -> err "isnum" 1 (List.length params)
   )));
 
   ("islist", (fun params env -> (
     match params with
-    | [e] -> (
-      match eval e env with
-      | Ok RList _ -> Ok (RBool true)
-      | _ -> Ok (RBool false)
-    )
+    | [e] -> type_predicate (function RList _ -> true | _ -> false) e env
 
     | _ -> err "islist" 1 (List.length params)
   )));
 
   ("isfun", (fun params env -> (
     match params with
-    | [e] -> (
-      match eval e env with
-      | Ok RLambda _ -> Ok (RBool true)
-      | _ -> Ok (RBool false)
-    )
+    | [e] -> type_predicate (function RLambda _ -> true | _ -> false) e env
 
     | _ -> err "islambda" 1 (List.length params)
   )));
 
   ("isnative", (fun params env -> (
     match params with
-    | [e] -> (
-      match eval e env with
-      | Ok RNativeFun _ -> Ok (RBool true)
-      | _ -> Ok (RBool false)
-    )
+    | [e] -> type_predicate (function RNativeFun _ -> true | _ -> false) e env
 
     | _ -> err "isnative" 1 (List.length params)
   )));
 
   ("ismac", (fun params env -> (
     match params with
-    | [e] -> (
-      match eval e env with
-      | Ok RMacro _ -> Ok (RBool true)
-      | _ -> Ok (RBool false)
-    )
+    | [e] -> type_predicate (function RMacro _ -> true | _ -> false) e env
 
-    | _ -> err "ismac" 1 (List.length params)
+    | _ -> err "isnative" 1 (List.length params)
   )));
 
   ("isbool", (fun params env -> (
     match params with
-    | [e] -> (
-      match eval e env with
-      | Ok RBool _ -> Ok (RBool true)
-      | _ -> Ok (RBool false)
-    )
+    | [e] -> type_predicate (function RBool _ -> true | _ -> false) e env
 
     | _ -> err "isbool" 1 (List.length params)
   )));
 
   ("isrecord", (fun params env -> (
     match params with
-    | [e] -> (
-      match eval e env with
-      | Ok RRecord _ -> Ok (RBool true)
-      | _ -> Ok (RBool false)
-    )
+    | [e] -> type_predicate (function RRecord _ -> true | _ -> false) e env
 
     | _ -> err "isrecord" 1 (List.length params)
   )));
@@ -854,7 +831,7 @@ let native_funs = [
         Error (EvaluationError (sprintf "Couldn't write to '%s': %s" path e))
     )
 
-    | _ -> err "write_file" 1 (List.length params)
+	| _ -> err "write_file" 2 (List.length params)
   )));
 
   ("remove_file", (fun params env -> (
@@ -880,7 +857,7 @@ let native_funs = [
         | [] -> List.rev acc
         | x :: xs -> aux (RString x :: acc) xs
       in try
-        Ok (RList (aux [] (Array.to_list (Sys.readdir path))))
+		Ok (RList (aux [] (Array.to_list (Sys.readdir path) |> List.sort String.compare)))
       with Sys_error e ->
         Error (EvaluationError (sprintf "Couldn't read directory '%s': %s" path e))
     )

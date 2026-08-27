@@ -24,6 +24,7 @@ let () =
   | [_; "-e"; expr] | [_; "--eval"; expr] -> (
     match Interpreter.do_string expr Interpreter.new_interpreter with
     | Ok evaluated -> print_endline (Runtime_value.string_of_rval evaluated)
+    | Error (Nomad_err.Exit code) -> exit code
     | Error e -> (
       Nomad_err.print_err e;
       exit 1
@@ -47,6 +48,7 @@ let () =
       in
 
       (match Interpreter.do_string input interpreter with
+      | Error (Nomad_err.Exit code) -> exit code
       | Error e -> Nomad_err.print_err e
       | Ok evaluated -> (
         Printf.printf "Evaluates to: %s\n" (string_of_rval evaluated);
@@ -57,14 +59,10 @@ let () =
   )
 
   | _ :: input_file :: _ -> (
-    try
-      match Interpreter.do_file input_file with
-      | Ok _ -> ()
-      | Error e -> Nomad_err.print_err e; exit 1
-    with Sys_error e -> (
-      print_endline ("Error while reading file: " ^ e);
-      exit 1
-    )
+    match Interpreter.do_file input_file with
+    | Ok _ -> ()
+    | Error (Nomad_err.Exit code) -> exit code
+    | Error e -> Nomad_err.print_err e; exit 1
   )
   
   | _ -> (

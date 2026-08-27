@@ -1,5 +1,6 @@
 # Nomad Lisp Reference
-This markdown document serves as an informal reference to define what nomad is.
+
+This is the original informal design note for Nomad. The normative language definition is now [The Nomad Lisp Language Standard](standard.md). This page remains useful background on why the language and embedding API look the way they do.
 
 ## What makes nomad unique?
 Nomad is unique because it is designed to be TINY, like, even more so than most embeddable languages.

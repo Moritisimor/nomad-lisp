@@ -1,16 +1,16 @@
 # nomad-lisp
 ![Nomad Lisp Logo](docs/NomadLogo.svg)
 
-Modern, readable, dynamically typed, interpreted LISP dialect written in OCaml.
+Nomad is a small, readable, dynamically typed Lisp written in OCaml. It comes with a REPL, a practical standard library, macros, closures, persistent lists, mutable records, file and OS helpers, and a straightforward API for embedding the interpreter.
 
 ## What is this project about?
-This is my very own LISP Dialect.
+This is my own Lisp dialect: compact enough to understand, but complete enough to write useful scripts. The OCaml implementation is the original Nomad, and its behavior is kept in sync with the Go and Rust ports.
 
-The interpreter is written in OCaml.
+Evaluation is stack-safe for tail calls and core forms such as `if`, `do`, `switch`, `scoped`, and `try`. Long-running recursive programs do not have to trade the simple Lisp style for an imperative loop.
 
 You can find markdown files that serve as documentation [here](https://github.com/Moritisimor/nomad-lisp/tree/main/docs).
 
-You can find an informal language reference [here](https://github.com/Moritisimor/nomad-lisp/tree/main/reference).
+The portable language and implementation requirements are defined by [The Nomad Lisp Language Standard](reference/standard.md). The original [informal reference](reference/reference.md) is kept as design background.
 
 You can also find some example programs [here](https://github.com/Moritisimor/nomad-lisp/tree/main/examples).
 
@@ -31,15 +31,15 @@ The nomad implementation in gleam for the BEAM by [RobertFlexx](https://github.c
 
 ## Cloning and building
 ### Prerequisites
-You will need the `dune` build system installed as well as `git`.
+You will need OCaml 5.4.1 or newer, opam, dune, and git.
 
 ### Script
 ```bash
 git clone https://github.com/Moritisimor/nomad-lisp
 cd nomad-lisp
-opam install .
+opam install . --deps-only
 eval $(opam env)
-dune build
+make
 cp _build/default/bin/main.exe nomad
 ```
 
@@ -47,6 +47,8 @@ You can now enter the REPL like this:
 ```bash
 ./nomad
 ```
+
+Run the conformance and tail-call tests with `make test`. Use `make clean` to remove dune's build output.
 
 Try typing some basic arithmetics and play around!
 ```lisp

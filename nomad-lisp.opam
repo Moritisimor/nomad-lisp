@@ -12,9 +12,9 @@ doc: "https://github.com/Moritisimor/nomad-lisp"
 bug-reports: "https://github.com/Moritisimor/nomad-lisp/issues"
 depends: [
   "dune" {>= "3.24"}
-  "ocaml"
-  "odoc" {with-doc}
+  "ocaml" {>= "5.4.1"}
   "linenoise" {>= "1.5.1"}
+  "odoc" {with-doc}
 ]
 build: [
   ["dune" "subst"] {dev}
