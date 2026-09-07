@@ -33,6 +33,10 @@ If you want a port of nomad to the full DotNet 10.0 ecosystem, check out **this*
 
 [DotMad](https://github.com/RobertFlexx/DotMad)
 
+For a port of nomad to Beef, check out **this**
+
+[madBeef](https://github.com/RobertFlexx/madBeef)
+
 ## Cloning and building
 ### Prerequisites
 You will need OCaml 5.4.1 or newer, opam, dune, and git.
