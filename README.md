@@ -37,6 +37,12 @@ For a port of nomad to Beef, check out **this**
 
 [madBeef](https://github.com/RobertFlexx/madBeef)
 
+For a port of nomad to the JVM, check out **this**
+
+[jomad](https://github.com/Moritisimor/jomad)
+
+----------------------
+
 ## Cloning and building
 ### Prerequisites
 You will need OCaml 5.4.1 or newer, opam, dune, and git.
